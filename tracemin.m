@@ -35,7 +35,7 @@ end
 
 
 [m,n] = size(A);
-if m!=n 
+if m~=n 
   disp("A is not correct")
   return
 end
