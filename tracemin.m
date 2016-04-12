@@ -34,11 +34,22 @@ end
 
 
 
-%%TODO1 multi section 
-% .. ..
-[p,A ...]=TODO_fun1();
+[m,n] = size(A);
+if m!=n 
+  disp("A is not correct")
+  return
+end
+clear m
 
-%%trace mini body
-X = tracemin_body(A, B, 2*p) 
+
+%%TODO1 multi section 
+[ni_list,Ai_list]=TODO_fun1();
+
+Y   = sparse(n,n); %empty matrix waiting to be filled in
+Thi = sparse(n,n); %empty matrix waiting to be filled in 
+for i = 1 : p
+  [Y(:,i),Thi(i,i)] = tracemin_body(Ai_list(i), B, 2*ni_list(i), n); %TODO2 implement tracemin_body
+end
+
 
 return 
