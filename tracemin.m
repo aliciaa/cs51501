@@ -36,7 +36,7 @@ end
 
 [m,n] = size(A);
 if m~=n 
-  disp("A is not correct")
+  disp('A is not correct')
   return
 end
 clear m
