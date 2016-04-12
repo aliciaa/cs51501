@@ -43,7 +43,7 @@ clear m
 
 
 %%TODO1 multi section 
-[ni_list,Ai_list]=TODO_fun1();
+[ni_list,Ai_list]=multi_section(A, B, s, p);
 
 Y   = sparse(n,n); %empty matrix waiting to be filled in
 Thi = sparse(n,n); %empty matrix waiting to be filled in 
