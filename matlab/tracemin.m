@@ -26,7 +26,7 @@ if nargin==0
   B = B+B'+10*sparse(eye(10));
   s = 8;
   p = 2;
-elif nargin != 4
+elif nargin ~= 4
   disp('usage: [Y, Thi] = tracemin(A, B, s, p');
   disp('   or  [Y, Thi] = tracemin()');
   return
