@@ -100,11 +100,11 @@ POLICY = 2;
 
 if POLICY == 1
     P = sparse(eye(n)) - B*X* inv(X'*B*B*X) * X' *B;
-    _A = PAP;
-    _D = PAX;
+    A_ = PAP;
+    D_ = PAX;
     delt = sparse(n,s);
     for i = 1:s
-        delt(:,i) = acg(_A, _D(:,i),  tol);
+        delt(:,i) = acg(A_, D_(:,i),  tol);
     end
     return
 
@@ -129,4 +129,6 @@ else %POLICY >=3
     delt = mCG_core(P*A, P*A*X, n, s, k);   %Alg 3. CG s.t. accept matrix
     return
     
-end
+end %end of if
+
+end %end of funtion
