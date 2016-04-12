@@ -88,30 +88,45 @@ function [delt] = mCG_solver(A, B, X, n, s, k)
 %   % need to handle 
 %   %               scale = X'RX/X'X   becomes a matrix problme
 %
-% currently, we implemented: naive alg
-%                            Alg 1 + Alg 2 + Alg 3
-%                            Alg 1 + Alg 2 + Alg 4
+% currently, we implemented: naive alg                   POLICY=1
+%                            Alg 1 + Alg 2 + Alg 3       POLICY=2 (default)
+%                            Alg 1 + Alg 2 + Alg 4       POLICY=3
 %=====================================================================
-
-[Q,R] = qr(B*X);  % TODO Q may be have too many fill in 
-Q2 = Q(:,s+1:n);  % Thus We'd better replace this part with our own method
-P = Q2*Q2';
 
 %tol = get_tol(k);  % CG should be rough at the beginning and accurate in the end
 tol = 10^(-6);
 
+POLICY = 2;
 
-delt = pcg(@afun, reshape(P*(A*X),[n*s,1]), tol);  % a function handle, afun, such that afun(x) returns P*A*x 
-
-    function y = afun(x)
-        y=zeros(n*s,1);
-        for i =1:s
-            y((i-1)*n+1: i*n) = P*(A* x((i-1)*n+1:i*n) );
-        end
+if POLICY == 1
+    P = sparse(eye(n)) - B*X* inv(X'*B*B*X) * X' *B;
+    _A = PAP;
+    _D = PAX;
+    delt = sparse(n,s);
+    for i = 1:s
+        delt(:,i) = acg(_A, _D(:,i),  tol);
     end
+    return
 
-delt = reshape(delt, [n,s]);
+elseif POLICY ==2
+    [Q,R] = qr(B*X);  % TODO Q may be have too many fill in 
+    Q2 = Q(:,s+1:n);  % Thus We'd better replace this part with our own method
+    P = Q2*Q2';
+    delt = pcg(@afun, reshape(P*(A*X),[n*s,1]), tol);  % a function handle, afun, such that afun(x) returns P*A*x 
+    
+        function y = afun(x)
+            y=zeros(n*s,1);
+            for i =1:s
+                y((i-1)*n+1: i*n) = P*(A* x((i-1)*n+1:i*n) );
+            end
+        end
+    delt = reshape(delt, [n,s]);
+    return
 
-
-
+else %POLICY >=3
+    [Q,R] = qr(B*X);  % TODO Q may be have too many fill in 
+    P = Q(:,s+1:n)*Q(:,s+1:n)';
+    delt = mCG_core(P*A, P*A*X, n, s, k);   %Alg 3. CG s.t. accept matrix
+    return
+    
 end
