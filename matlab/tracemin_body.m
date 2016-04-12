@@ -56,7 +56,7 @@ while 1
   for k = 1 : s
     i=find(col==k);
     if v(i)'*v(i) <= Thi(k,k)*thold 
-        bStop=0; break;
+        bStop=1; break;
     end
   end
   if(bStop==1)
