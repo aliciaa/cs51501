@@ -1,4 +1,4 @@
-function [Y, Thi] = tracemin_body(A, B, n, s)
+function [Y, Thi] = tracemin_body(ui, uj, A, B, n, s)
 %% basic trace minimization alg.
 % Alg 11.13 of book "Parallelism in Matrix Computations"
 % 
@@ -27,6 +27,7 @@ function [Y, Thi] = tracemin_body(A, B, n, s)
 % 
 %===============================================================
 
+A = A-(ui+uj)/2*B
 
 if nargin==0
     disp('DEBUG MODEL');
