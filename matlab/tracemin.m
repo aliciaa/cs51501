@@ -44,15 +44,9 @@ end
 
 
 
-[m,n] = size(A);
-if m~=n 
-  disp('A is not correct')
-  return
-end
-clear m
-
-Y   = sparse(n,n); %empty matrix waiting to be filled in
-Thi = sparse(n,n); %empty matrix waiting to be filled in 
+n   = size(A,1);
+Y   = sparse(n,n); %empty sparse  matrix waiting to be filled in
+Thi = sparse(n,n); %empty diagnal matrix waiting to be filled in 
 
 if bMultiSection == 1
   [ni_list,Ai_list]=multi_section(A, B, s, p, a, b);
