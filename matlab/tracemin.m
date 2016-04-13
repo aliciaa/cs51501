@@ -1,4 +1,4 @@
-function [Y, Thi] = tracemin(A, B, s, p)
+function [Y, Thi] = tracemin(A, B, s, p, a, b)
 %% basic trace minimization alg. 
 % Alg 11.13 of book "Parallelism in Matrix Computations"
 % 
@@ -26,8 +26,18 @@ if nargin==0
   B = B+B'+10*sparse(eye(10));
   s = 8;
   p = 2;
-elif nargin ~= 4
+  a = 0;
+  b = 100;
+  bMultiSection = 1
+elseif nargin == 4
+  disp('The first problem');
+  bMultiSection = 0
+elseif nargin == 6
+  disp('The second problem');
+  bMultiSection = 1
+else
   disp('usage: [Y, Thi] = tracemin(A, B, s, p');
+  disp('   or  [Y, Thi] = tracemin(A, B, s, p, a, b');
   disp('   or  [Y, Thi] = tracemin()');
   return
 end
@@ -41,15 +51,19 @@ if m~=n
 end
 clear m
 
-
-%%TODO1 multi section 
-[ni_list,Ai_list]=multi_section(A, B, s, p);
-
 Y   = sparse(n,n); %empty matrix waiting to be filled in
 Thi = sparse(n,n); %empty matrix waiting to be filled in 
-for i = 1 : p
-  [Y(:,i),Thi(i,i)] = tracemin_body(Ai_list(i), B, 2*ni_list(i), n); %TODO2 implement tracemin_body
-end
 
+if bMultiSection == 1
+  [ni_list,Ai_list]=multi_section(A, B, s, p, a, b);
+  ibeg=1; 
+  for i = 1 : p
+    iend=ibeg+ni_list(1); 
+    [Y(:,ibeg:iend),Thi(ibeg:iend, ibeg:iend)] = tracemin_body(Ai_list(i), B, 2*ni_list(i), n); %TODO2 implement tracemin_body
+    ibeg=iend+1;
+  end
+else
+  [Y, Thi] = tracemin_body(A, B, 2*s, n) 
+end
 
 return 
