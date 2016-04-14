@@ -1,4 +1,4 @@
-function [ x ] = mCG_core(A, b, n, s, tol)
+function [ x ] = mCG_core(A, b, n, s, Thi)
 %% Advanced CG alg
 % advanced CG to support Ax=b 
 %         with x,b be matrixs
@@ -44,6 +44,8 @@ if nargin ==0
 
 end
 
+ tol = 10^(-3);
+
 %initial guess is zero
 x     = sparse(n,s); %sparse
 r     = b; %-A*X       
@@ -56,7 +58,7 @@ for i = 1: length(b)
   x     = x  + Zoomkv(alpha,P,s);
   r     = r  - Zoomkv(alpha,(A*P),s);
   rsnew = IPAAcc(r,s);
-  if sqrt(max(rsnew)) < tol
+  if sqrt(max(rsnew)) < tol  %TODO, fixme, since m should be estimated according to 1982 papre
       break
   end
   P     = r + Zoomkv((rsnew./rsold),P,s);
