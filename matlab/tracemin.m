@@ -12,14 +12,15 @@ function [Y, Thi] = tracemin(A, B, s, p, a, b)
 % A, B : n x n sparse mtx 
 % s    : no. of eigenpairs we want (smallest s eigenpairs), s<<n
 % p    : no. of processes. or no. of sections
-% Y    : n x s sparse mtx                (eigenvectors of A)
+% a,b  : regions [a,b]
 % Thi  : s x s sparse diag. mtx (diag.)  (eigenvalues of  A)
+% Y    : n x s sparse mtx                (eigenvectors of A)
 %===============================================================
 %
 %
 
 if nargin==0
-  disp('DEBUG MODEL')
+  disp('tracemin DEBUG MODEL')
   A = sparse(rand(10));
   A = A+A'+10*sparse(eye(10));
   B = sparse(rand(10));
@@ -28,12 +29,12 @@ if nargin==0
   p = 2;
   a = 0;
   b = 100;
-  bMultiSection = 1
+  bMultiSection = 1;
 elseif nargin == 4
-  disp('The first problem');
+  disp('The first problem. (without regions [a,b])');
   bMultiSection = 0
 elseif nargin == 6
-  disp('The second problem');
+  disp('The second problem. (with regions [a,b])');
   bMultiSection = 1
 else
   disp('usage: [Y, Thi] = tracemin(A, B, s, p');
@@ -45,20 +46,20 @@ end
 
 
 n   = size(A,1);
-Y   = sparse(n,n); %empty sparse  matrix waiting to be filled in
-Thi = sparse(n,n); %empty diagnal matrix waiting to be filled in 
-
 
 if bMultiSection == 1
   [ni_list,intervals]=multi_section(A, B, a, b, s);
-  ibeg=1; 
+  ibeg=1;
+  ncol = sum(ni_list);
+  Y = zeros(n,ncol);
+  Thi = zeros(n,ncol);
   for i = 1 : p
-    iend=ibeg+ni_list(1); 
-    [Y(:,ibeg:iend),Thi(ibeg:iend, ibeg:iend)] = tracemin_body(intervals(i), intervals(i+1), A, B, 2*ni_list(i), n); %TODO2 implement tracemin_body
+    iend=ibeg+ni_list(1);
+    [Y(:,ibeg:iend), Thi(ibeg:iend, ibeg:iend)] = tracemin_body(A, B, ni_list(i), intervals(i), intervals(i+1));
     ibeg=iend+1;
   end
 else
-  [Y, Thi] = tracemin_body(intervals(i), intervals(i+1), A, B, 2*s, n) 
+  [Y, Thi] = tracemin_body(A, B, s); 
 end
 
 return 

@@ -93,42 +93,69 @@ function [delt] = mCG_solver(A, B, X, n, s, k)
 %                            Alg 1 + Alg 2 + Alg 4       POLICY=3
 %=====================================================================
 
-%tol = get_tol(k);  % CG should be rough at the beginning and accurate in the end
-tol = 10^(-6);
 
-POLICY = 2;
+if nargin==0
+    disp('mCG_solver DEBUG MODEL');
+    n = 10;
+    s = 2;
+    k = 1;
+    A = sparse(rand(n,n)); A=A+A'+10*sparse(eye(n));
+    B = sparse(rand(n,n)); A=A+A'+10*sparse(eye(n));
+    X = sparse(rand(n,s));
+elseif nargin == 6
+    disp('mCG_solver()');
+else
+    disp('usage: [Y, Thi] = tracemin(A, B, s, p');
+    disp('   or  [Y, Thi] = tracemin(A, B, s, p, a, b');
+    disp('   or  [Y, Thi] = tracemin()');
+    return
+end
+
+
+POLICY = 3;
+tol = somehowget_tolerance(k);  % CG should be rough at the beginning and accurate in the end
+tol = 10^(-3);
 
 if POLICY == 1
-    P = sparse(eye(n)) - B*X* inv(X'*B*B*X) * X' *B;
-    A_ = PAP;
-    D_ = PAX;
+    P = getP(B,X); 
+    A_ = P*A*P;
+    D_ = P*A*X;
     delt = sparse(n,s);
     for i = 1:s
-        delt(:,i) = acg(A_, D_(:,i),  tol);
+        delt(:,i) = pcg(A_, D_(:,i),  tol);
     end
     return
-
-elseif POLICY ==2
-    [Q,R] = qr(B*X);  % TODO Q may be have too many fill in 
-    Q2 = Q(:,s+1:n);  % Thus We'd better replace this part with our own method
-    P = Q2*Q2';
-    delt = pcg(@afun, reshape(P*(A*X),[n*s,1]), tol);  % a function handle, afun, such that afun(x) returns P*A*x 
     
-        function y = afun(x)
-            y=zeros(n*s,1);
-            for i =1:s
-                y((i-1)*n+1: i*n) = P*(A* x((i-1)*n+1:i*n) );
-            end
-        end
-    delt = reshape(delt, [n,s]);
+elseif POLICY ==2
+    P = getP(B,X);
+    delt = pcg(@afun, reshape(P*(A*X),[n*s,1]), tol);  % a function handle, afun, such that afun(x) returns P*A*x 
+    delt = sparse(reshape(delt, [n,s]));
     return
 
 else %POLICY >=3
-    [Q,R] = qr(B*X);  % TODO Q may be have too many fill in 
-    P = Q(:,s+1:n)*Q(:,s+1:n)';
-    delt = mCG_core(P*A, P*A*X, n, s, k);   %Alg 3. CG s.t. accept matrix
+    P = getP(B,X);
+    delt = mCG_core(P*A, P*A*X, n, s, tol);   %Alg 3. CG s.t. accept matrix
     return
     
 end %end of if
+    
 
+    % CG should be rough at the beginning and accurate in the end    
+    function tol = somehowget_tolerance(k)
+        tol = 10^(-3)+(k-k);
+        
+
+    function P = getP(B,X)
+        P = sparse(eye(n)) - B*X* inv(X'*B*B*X) * X' *B
+        %[Q,R] = qr(B*X);  % TODO Q may be have too many fill in 
+        %Q2 = Q(:,s+1:n);  % Thus We'd better replace this part with our own method
+        %P = Q2*Q2';
+    end
+
+    function y = afun(x)
+        y=zeros(n*s,1);
+        for i =1:s
+            y((i-1)*n+1: i*n) = P*(A* x((i-1)*n+1:i*n) );
+        end
+    end
 end %end of funtion

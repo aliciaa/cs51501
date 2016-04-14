@@ -1,4 +1,4 @@
-function [Y, Thi] = tracemin_body(ui, uj, A, B, n, s)
+function [X, Thi] = tracemin_body(A, B, k, ui, uj)
 %% basic trace minimization alg.
 % Alg 11.13 of book "Parallelism in Matrix Computations"
 % 
@@ -15,57 +15,68 @@ function [Y, Thi] = tracemin_body(ui, uj, A, B, n, s)
 % L9:     B-orthonormalize X-=delt 
 %============================================================
 %
-% input:  A, B, n, s
-% output: Y, Thi
+% input:  A, B, k, ui, uj
+% output: Thi, Y
 % 
 % A, B : n x n sparse mtx 
-% n    : matrix dimension, we assume [n,n] == size(A) == size(B)
-% s    : no. of eigenvalues we want (block size) 
-%                                   (default s = 2 times ni)
-% Y    : s x s sparse? mtx          (eigenvectors of H)
+% k    : no. of eigenvalues we want (block size) (default s = 2k)
+% ui,uj: region [ui,uj]             (used to form new A-=0.5*(ui+uj)*B)
 % Thi  : s x s diag mtx             (eigenvalues  of H) (ascending order)
+% Y    : s x s sparse? mtx          (eigenvectors of H)
 % 
 %===============================================================
 
 A = A-(ui+uj)/2*B;
 
 if nargin==0
-    disp('DEBUG MODEL');
+    disp('tracemin_body DEBUG MODEL');
     A   = sparse(rand(10));
     A   = A+A'+10*sparse(eye(10));
     B   = sparse(rand(10));
     B   = B+B'+10*sparse(eye(10));
-    n   = 10;
-    s   = 5;
-elseif nargin ~= 5
-    disp('usage: [X,bStop, Y, Thi] = tracemin_body(A, B, n, s)');
-    disp('   or  [X,bStop, Y, Thi] = tracemin_body()');
+    k   = 5;
+elseif nargin == 3 
+    disp('TraceMin body without region')
+elseif nargin == 5
+    disp('TraceMin body with region')
+    A = A-(ui+uj)/2*B;
+else    
+    disp('usage: [Thi, Y] = tracemin_body(A, B, k, ui, uj)');
+    disp('       [Thi, Y] = tracemin_body(A, B, k)');
+    disp('   or  [Thi, Y] = tracemin_body()');
     return
 end
 
-k=1; bStop=0;  thold = 10^(-6);     %threashold 
+s = 2*k;
+[n,n] = size(A);
+THRESHOLD = 1e-6;           %threshold 
+Z = eye(n,s);
 
-V = Jacobi_algo_func1(B, n, s);   %FIXME: definitedly needed to be fixed
-
-while 1 
-  W=A*V;   %FIXME if necessary
-  H=V'*W;  %FIXME if necessary
-  [Y,Thi] = Jacobi_algo_func2(H); %FIXME: definitely needed to be fixed
+while 1
+  [Q,Sigma] = eig(B*Z);      %if n~= s this function would crash!!!!!
+  V = Z*Q/sqrt(Sigma);
+  W=A*V;                     
+  H=V'*W;                    
+  [Y,Thi] = eig(H);
+  [S, idx] = sort(diag(Thi));
+  Thi = diag(S);
+  Y = Y(:,idx);
   X=V*Y;
   R=W*Y-B*X*Thi;
-  [row,col,v] = find(R);
-  for k = 1 : s
-    i=find(col==k);
-    if v(i)'*v(i) <= Thi(k,k)*thold 
-        bStop=1; break;
+  bStop = 1;
+  for col = 1 : k
+    if norm(R(:,col),2) > Thi(col,col)*THRESHOLD 
+        bStop=0; break;        %if any column does not meet threshold, then continue
     end
   end
-  if(bStop==1)
-    return
+  if bStop == 1
+    break;  % break the while loop
   end
-  delt = mCG_solver(A,B,X);
-  V = Jacobi_algo_B_orth(X-delt);  %FIXME: definitely needed to be fixed
+  Delta = mCG_solver(A,B,X,n,s,t);       % what is the last parameter here? to be fixed
+  Z = X - Delta;    %FIXME: TODO
 end 
 
-end %end of function
+X = X(:,1:k);           % only keep the k smallest eigenvectors
+Thi = Thi(1:k,1:k);     % only keep the k smallest eigenvalues
 
+end %end of function
