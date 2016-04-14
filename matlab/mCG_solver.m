@@ -117,7 +117,7 @@ tol = somehowget_tolerance(k);  % CG should be rough at the beginning and accura
 tol = 10^(-3);
 
 if POLICY == 1
-    P = getP(B,X);
+    P = getP(B,X); 
     A_ = P*A*P;
     D_ = P*A*X;
     delt = sparse(n,s);
