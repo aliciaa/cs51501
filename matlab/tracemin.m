@@ -1,4 +1,4 @@
-function [Thi, Y] = tracemin(A, B, s, p, a, b)
+function [Y, Thi] = tracemin(A, B, s, p, a, b)
 %% basic trace minimization alg. 
 % Alg 11.13 of book "Parallelism in Matrix Computations"
 % 
@@ -46,20 +46,20 @@ end
 
 
 n   = size(A,1);
-Y   = sparse(n,n); %empty sparse  matrix waiting to be filled in
-Thi = sparse(n,n); %empty diagnal matrix waiting to be filled in 
-
 
 if bMultiSection == 1
   [ni_list,intervals]=multi_section(A, B, a, b, s);
-  ibeg=1; 
+  ibeg=1;
+  ncol = sum(ni_list);
+  Y = zeros(n,ncol);
+  Thi = zeros(n,ncol);
   for i = 1 : p
-    iend=ibeg+ni_list(1); 
-    [Thi(ibeg:iend, ibeg:iend),Y(:,ibeg:iend)] = tracemin_body(A, B, 2*ni_list(i), n, intervals(i), intervals(i+1));
+    iend=ibeg+ni_list(1);
+    [Y(:,ibeg:iend), Thi(ibeg:iend, ibeg:iend)] = tracemin_body(A, B, 2*ni_list(i), intervals(i), intervals(i+1));
     ibeg=iend+1;
   end
 else
-  [Thi, Y] = tracemin_body(A, B, 2*s, n); 
+  [Y, Thi] = tracemin_body(A, B, 2*s); 
 end
 
 return 
