@@ -53,7 +53,7 @@ THRESHOLD = 1e-6;           %threshold
 Z = eye(n,s);
 
 while 1
-  [Q,Sigma] = eig(B*Z);      %if n~= s this function would crash!!!!!
+  [Q,Sigma] = eig(Z'*B*Z);
   V = Z*Q/sqrt(Sigma);
   W=A*V;                     
   H=V'*W;                    
