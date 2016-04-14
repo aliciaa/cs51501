@@ -31,7 +31,7 @@ function [ x ] = mCG_core(A, b, n, s, tol)
 %===============================================================
 
 if nargin ==0
-    disp('DEBUG MODEL for mCG_core');
+    disp('mCG_core DEBUG MODEL');
     n = 10;
     s = 2;
     A = sparse(rand(n,n)); A=A+A'+10*sparse(eye(n));
@@ -63,6 +63,7 @@ for i = 1: length(b)
   rsold = rsnew;
 end
 
+    %Inner Product A x A colum by colum
     function v = IPAAcc(A,s)
         v = sparse(s,1); % zeros(s,1);
         for i = 1:s
@@ -70,6 +71,7 @@ end
         end
     end
 
+    %Inner Product A x B colum by colum
     function v = IPABcc(A,B,~,s)
         v = sparse(s,1); % zeros(s,1);
         for i = 1:s
@@ -77,6 +79,7 @@ end
         end
     end
 
+    %Zoom vector by scalar (k is scalars, P is vectors)
     function P = Zoomkv(k,P,s)
         for i = 1:s
             P(:,i)=k(i)*P(:,i);

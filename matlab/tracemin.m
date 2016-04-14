@@ -1,4 +1,4 @@
-function [Y, Thi] = tracemin(A, B, s, p, a, b)
+function [Thi, Y] = tracemin(A, B, s, p, a, b)
 %% basic trace minimization alg. 
 % Alg 11.13 of book "Parallelism in Matrix Computations"
 % 
@@ -12,14 +12,15 @@ function [Y, Thi] = tracemin(A, B, s, p, a, b)
 % A, B : n x n sparse mtx 
 % s    : no. of eigenpairs we want (smallest s eigenpairs), s<<n
 % p    : no. of processes. or no. of sections
-% Y    : n x s sparse mtx                (eigenvectors of A)
+% a,b  : regions [a,b]
 % Thi  : s x s sparse diag. mtx (diag.)  (eigenvalues of  A)
+% Y    : n x s sparse mtx                (eigenvectors of A)
 %===============================================================
 %
 %
 
 if nargin==0
-  disp('DEBUG MODEL')
+  disp('tracemin DEBUG MODEL')
   A = sparse(rand(10));
   A = A+A'+10*sparse(eye(10));
   B = sparse(rand(10));
@@ -28,12 +29,12 @@ if nargin==0
   p = 2;
   a = 0;
   b = 100;
-  bMultiSection = 1
+  bMultiSection = 1;
 elseif nargin == 4
-  disp('The first problem');
+  disp('The first problem. (without regions [a,b])');
   bMultiSection = 0
 elseif nargin == 6
-  disp('The second problem');
+  disp('The second problem. (with regions [a,b])');
   bMultiSection = 1
 else
   disp('usage: [Y, Thi] = tracemin(A, B, s, p');
@@ -54,11 +55,11 @@ if bMultiSection == 1
   ibeg=1; 
   for i = 1 : p
     iend=ibeg+ni_list(1); 
-    [Y(:,ibeg:iend),Thi(ibeg:iend, ibeg:iend)] = tracemin_body(intervals(i), intervals(i+1), A, B, 2*ni_list(i), n); %TODO2 implement tracemin_body
+    [Thi(ibeg:iend, ibeg:iend),Y(:,ibeg:iend)] = tracemin_body(A, B, 2*ni_list(i), n, intervals(i), intervals(i+1));
     ibeg=iend+1;
   end
 else
-  [Y, Thi] = tracemin_body(intervals(i), intervals(i+1), A, B, 2*s, n) 
+  [Thi, Y] = tracemin_body(A, B, 2*s, n); 
 end
 
 return 
