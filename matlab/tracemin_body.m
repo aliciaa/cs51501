@@ -76,4 +76,7 @@ while 1
   Z = X - Delta;    %FIXME: TODO
 end 
 
+X = X(:,1:k);           % only keep the k smallest eigenvectors
+Thi = Thi(1:k,1:k);     % only keep the k smallest eigenvalues
+
 end %end of function
