@@ -1,4 +1,4 @@
-function [X, Thi] = tracemin_body(A, B, s, ui, uj)
+function [X, Thi] = tracemin_body(A, B, k, ui, uj)
 %% basic trace minimization alg.
 % Alg 11.13 of book "Parallelism in Matrix Computations"
 % 
@@ -34,42 +34,46 @@ if nargin==0
     A   = A+A'+10*sparse(eye(10));
     B   = sparse(rand(10));
     B   = B+B'+10*sparse(eye(10));
-    s   = 5;
+    k   = 5;
 elseif nargin == 4
     disp('TraceMin body without region')
 elseif nargin == 6
     disp('TraceMin body with region')
     A = A-(ui+uj)/2*B;
 else    
-    disp('usage: [Thi, Y] = tracemin_body(A, B, s, ui, uj)');
-    disp('       [Thi, Y] = tracemin_body(A, B, s)');
+    disp('usage: [Thi, Y] = tracemin_body(A, B, k, ui, uj)');
+    disp('       [Thi, Y] = tracemin_body(A, B, k)');
     disp('   or  [Thi, Y] = tracemin_body()');
     return
 end
 
+s = 2*k;
 [n,n] = size(A);
-THRESHOLD = 10^(-6);           %threshold 
-Z = eye(n, s);
+THRESHOLD = 1e-6;           %threshold 
+Z = eye(n,s);
 
 while 1
   [Q,Sigma] = eig(B*Z);
   V = Z*Q/sqrt(Sigma);
   W=A*V;                     
   H=V'*W;                    
-  [Y,Thi] = eig(H); 
+  [Y,Thi] = eig(H);
+  [S, idx] = sort(diag(Thi));
+  Thi = diag(S);
+  Y = Y(:,idx);
   X=V*Y;
   R=W*Y-B*X*Thi;
   bStop = 1;
-  for k = 1 : s
-    if norm(R(:,k),2) > Thi(k,k)*THRESHOLD 
+  for col = 1 : k
+    if norm(R(:,col),2) > Thi(col,col)*THRESHOLD 
         bStop=0; break;        %if any column does not meet threshold, then continue
     end
   end
   if bStop == 1
     break;  % break the while loop
   end
-  delt = mCG_solver(A,B,X,n,s,k);
-  Z = X - delt;    %FIXME: TODO
+  Delta = mCG_solver(A,B,X,n,s,t);       % what is the last parameter here? to be fixed
+  Z = X - Delta;    %FIXME: TODO
 end 
 
 end %end of function
