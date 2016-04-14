@@ -55,11 +55,11 @@ if bMultiSection == 1
   Thi = zeros(n,ncol);
   for i = 1 : p
     iend=ibeg+ni_list(1);
-    [Y(:,ibeg:iend), Thi(ibeg:iend, ibeg:iend)] = tracemin_body(A, B, 2*ni_list(i), intervals(i), intervals(i+1));
+    [Y(:,ibeg:iend), Thi(ibeg:iend, ibeg:iend)] = tracemin_body(A, B, ni_list(i), intervals(i), intervals(i+1));
     ibeg=iend+1;
   end
 else
-  [Y, Thi] = tracemin_body(A, B, 2*s); 
+  [Y, Thi] = tracemin_body(A, B, s); 
 end
 
 return 
