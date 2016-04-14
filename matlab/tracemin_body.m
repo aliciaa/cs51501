@@ -15,12 +15,11 @@ function [X, Thi] = tracemin_body(A, B, k, ui, uj)
 % L9:     B-orthonormalize X-=delt 
 %============================================================
 %
-% input:  A, B, n, s, ui, uj
+% input:  A, B, k, ui, uj
 % output: Thi, Y
 % 
 % A, B : n x n sparse mtx 
-% n    : matrix dimension, we assume [n,n] == size(A) == size(B)
-% s    : no. of eigenvalues we want (block size) (default s = 2ni)
+% k    : no. of eigenvalues we want (block size) (default s = 2k)
 % ui,uj: region [ui,uj]             (used to form new A-=0.5*(ui+uj)*B)
 % Thi  : s x s diag mtx             (eigenvalues  of H) (ascending order)
 % Y    : s x s sparse? mtx          (eigenvectors of H)
@@ -35,9 +34,9 @@ if nargin==0
     B   = sparse(rand(10));
     B   = B+B'+10*sparse(eye(10));
     k   = 5;
-elseif nargin == 4
+elseif nargin == 3 
     disp('TraceMin body without region')
-elseif nargin == 6
+elseif nargin == 5
     disp('TraceMin body with region')
     A = A-(ui+uj)/2*B;
 else    
@@ -53,7 +52,7 @@ THRESHOLD = 1e-6;           %threshold
 Z = eye(n,s);
 
 while 1
-  [Q,Sigma] = eig(B*Z);
+  [Q,Sigma] = eig(B*Z);      %if n~= s this function would crash!!!!!
   V = Z*Q/sqrt(Sigma);
   W=A*V;                     
   H=V'*W;                    
