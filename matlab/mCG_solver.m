@@ -1,4 +1,4 @@
-function [delt] = mCG_solver(A, B, X, n, s, k)
+function [delt] = mCG_solver(A, B, X, Thi)
 %Solve the positive-semidefinite linear system(11.66) approximately
 % via the CG scheme
 %
@@ -89,8 +89,8 @@ function [delt] = mCG_solver(A, B, X, n, s, k)
 %   %               scale = X'RX/X'X   becomes a matrix problme
 %
 % currently, we implemented: naive alg                   POLICY=1
-%                            Alg 1 + Alg 2 + Alg 3       POLICY=2 (default)
-%                            Alg 1 + Alg 2 + Alg 4       POLICY=3
+%                            Alg 1 + Alg 2 + Alg 3       POLICY=2 
+%                            Alg 1 + Alg 2 + Alg 4       POLICY=3 (default)
 %=====================================================================
 
 
@@ -102,7 +102,7 @@ if nargin==0
     A = sparse(rand(n,n)); A=A+A'+10*sparse(eye(n));
     B = sparse(rand(n,n)); A=A+A'+10*sparse(eye(n));
     X = sparse(rand(n,s));
-elseif nargin == 6
+elseif nargin == 4
     disp('mCG_solver()');
 else
     disp('usage: [Y, Thi] = tracemin(A, B, s, p');
@@ -111,10 +111,10 @@ else
     return
 end
 
-
+n,s = size(X)
 POLICY = 3;
 tol = somehowget_tolerance(k);  % CG should be rough at the beginning and accurate in the end
-tol = 10^(-3);
+
 
 if POLICY == 1
     P = getP(B,X); 
@@ -134,15 +134,15 @@ elseif POLICY ==2
 
 else %POLICY >=3
     P = getP(B,X);
-    delt = mCG_core(P*A, P*A*X, n, s, tol);   %Alg 3. CG s.t. accept matrix
+    delt = mCG_core(P*A, P*A*X, n, s, Thi);   %Alg 3. CG s.t. accept matrix
     return
     
 end %end of if
     
 
     % CG should be rough at the beginning and accurate in the end    
-    function tol = somehowget_tolerance(k)
-        tol = 10^(-3)+(k-k);
+    function tol = somehowget_tolerance(~)
+        tol = 10^(-3);
         
 
     function P = getP(B,X)
