@@ -111,7 +111,7 @@ else
     return
 end
 
-n,s = size(X)
+[n,s] = size(X)
 POLICY = 3;
 tol = somehowget_tolerance(k);  % CG should be rough at the beginning and accurate in the end
 
@@ -143,7 +143,7 @@ end %end of if
     % CG should be rough at the beginning and accurate in the end    
     function tol = somehowget_tolerance(~)
         tol = 10^(-3);
-        
+    end
 
     function P = getP(B,X)
         P = sparse(eye(n)) - B*X* inv(X'*B*B*X) * X' *B
