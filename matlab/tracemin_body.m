@@ -71,7 +71,7 @@ while 1
   if bStop == 1
     break;  % break the while loop
   end
-  Delta = mCG_solver(A,B,X,n,s,t);       % what is the last parameter here? to be fixed
+  Delta = mCG_solver(A,B,X, Thi);    %Thi is used to determin step m within CG. refered from the 1982 PAPER         
   Z = X - Delta;    %FIXME: TODO
 end 
 
