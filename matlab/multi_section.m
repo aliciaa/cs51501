@@ -1,7 +1,7 @@
 function [num_of_eigs, intervals] = multi_section(A, B, lower_bound, upper_bound, num_of_intervals)
 num_of_eigs = zeros(num_of_intervals, 1);
 intervals= zeros(num_of_intervals+1, 1);
-intervals(1) = lower_bound
+intervals(1) = lower_bound;
 int_min_length = 0.001;
 [lower_neg, lower_pos] = countd(A, B, lower_bound);
 [upper_neg, upper_pos] = countd(A, B, upper_bound);
@@ -14,9 +14,9 @@ for i = 1:num_of_intervals - 1
     prev_neg = neg;
     flag = 0;
     while (flag == 0)
-        int_mid_bound = (int_lower_bound + int_upper_bound) / 2
+        int_mid_bound = (int_lower_bound + int_upper_bound) / 2;
         [neg, pos] = countd(A, B, int_mid_bound);
-        neg - prev_neg
+        %neg - prev_neg;
         %if abs(neg - prev_neg - average) <= 2
         if abs(neg-prev_neg-average)/average <=0.05
             flag = 1;

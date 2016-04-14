@@ -27,7 +27,7 @@ function [Y, Thi] = tracemin_body(ui, uj, A, B, n, s)
 % 
 %===============================================================
 
-A = A-(ui+uj)/2*B
+A = A-(ui+uj)/2*B;
 
 if nargin==0
     disp('DEBUG MODEL');
