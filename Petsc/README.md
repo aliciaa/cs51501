@@ -1,4 +1,4 @@
-* Petsc is stupid!
+* Petsc is 
 
 Download Petsc from http://www.mcs.anl.gov/petsc/download/
 untar the file.
