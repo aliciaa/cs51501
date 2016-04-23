@@ -47,19 +47,15 @@ void get_multisection(const RowCompressedMatrix& A,
         double local_density = (num_eigs[i+1] - num_eigs[i]) / ((upper_bound - lower_bound) / (SPLIT_PER_PROC * nproc - 1));
 	//printf("local_density = %.5f\n", local_density);
 	intervals[l] = splitters[i] + (expect_avg_eigs - curr_eigs) / local_density;
-	//why? why not curr_eigs+=
 	curr_eigs = (splitters[i+1] - intervals[l]) * local_density;
 	l++;
       } else {
-        //why not need to store intervals[]?
         curr_eigs += num_eigs[i+1] - num_eigs[i];
       }
     }
   }
 }
 
-//how to control error?
-//how to test time?
 
 int main(int argc, char* argv[]) {
   MPI_Init(&argc, &argv);
