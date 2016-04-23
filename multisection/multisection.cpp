@@ -57,7 +57,10 @@ void get_multisection(const RowCompressedMatrix& A,
 }
 
 
-int main(int argc, char* argv[]) {
+//int main(int argc, char* argv[]) {
+void multisection(int argc, char* argv[],
+                  int lower_bound, int upper_bound,
+		  int num_intervals){
   MPI_Init(&argc, &argv);
   int nproc, rank;
   char pname[100];
@@ -71,9 +74,9 @@ int main(int argc, char* argv[]) {
   RowCompressedMatrix B(100000);
   //RowCompressedMatrix A(1000, 2, 0);
   //RowCompressedMatrix B(1000);
-  double lower_bound = 0;
-  double upper_bound = 200;
-  int num_intervals = 4;
+  //double lower_bound = 0;
+  //double upper_bound = 200;
+  //int num_intervals = 4;
   double* intervals = new double[num_intervals+1];
   intervals[0] = lower_bound;
 
@@ -118,4 +121,8 @@ int main(int argc, char* argv[]) {
   C.count_eigen(pos_eigen, neg_eigen);
 */
   MPI_Finalize();
+}
+
+int main(int argc, char* argv[]){
+  multisection(argc, argv, 0, 200, 4);
 }

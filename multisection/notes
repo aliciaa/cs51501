@@ -1,0 +1,4 @@
+command to run:
+export OMP_NUM_THREADS=1
+mpirun -np 4 ./multisection
+mpirun -np 4 -machinefile hostfile.txt  ./multisection
