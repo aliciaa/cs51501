@@ -1,0 +1,8 @@
+This folder contains the code for the MATLAB version of basic trace minimization alg.
+The basic trace minimization alg could be found in project introduction.
+Author Di, Yu-Hong and Xin
+
+How to use
+    The main interface file is the "tracemin.m"
+    So simpley call the function "tracemin()" would be fine.
+  
