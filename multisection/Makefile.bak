@@ -1,0 +1,22 @@
+CXX=mpiicc
+
+MKL_MIC_ENABLE=1
+
+PARDISO=-L/homes/jind/cs51501/proj/pardiso
+
+MKL=${MKLROOT}/lib/intel64/libmkl_scalapack_ilp64.a -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_ilp64.a -Wl,--end-group $(PARDISO) -liomp5 -lpthread -lm -lpardiso500-MPI-INTEL1301-X86-64 -lgfortran
+
+FLAGS=-DMKL_ILP64 -qopenmp -I${MKLROOT}/include
+
+
+
+all : pardiso
+
+pardiso : pardiso_sym.cpp
+	$(CXX) $(FLAGS) $^ -o $@ $(MKL)
+
+test : 
+	mpiicc $(FLAGS) pardiso_sym.cpp -o $@ $(PARDISO) -lpardiso500-MPI-INTEL1301-X86-64 -lgfortran  -L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_core -lmkl_intel_thread -lmkl_blacs_ilp64 -lmkl_gf_ilp64 -lpthread -lm -ldl -lgfortran -fopenmp -lifcore
+
+
+
