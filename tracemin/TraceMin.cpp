@@ -192,10 +192,10 @@ void TraceMin1(const PetscInt n,
 		MatAssemblyEnd(M, MAT_FINAL_ASSEMBLY);
 
 		/*---------------------------------------------------------------------------
-		 * R = AZ - BZ * M
+		 * R = AY - BY * M
 		 *---------------------------------------------------------------------------*/
-		MatMatMult(BZ, M, MAT_REUSE_MATRIX, PETSC_DEFAULT, &R);
-		MatAYPX(R, -1.0, AZ, SAME_NONZERO_PATTERN);
+		MatMatMult(BY, M, MAT_REUSE_MATRIX, PETSC_DEFAULT, &R);
+		MatAYPX(R, -1.0, AY, SAME_NONZERO_PATTERN);
 
 		/*---------------------------------------------------------------------------
 		 * Test for convergence
