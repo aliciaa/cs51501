@@ -169,18 +169,19 @@ int tracemin_cg(  Mat *pA, \
                   Mat *pX, \
                   Mat *pBY, \
                   Mat *pAY, \
-                  Vec *Sig, \
+                  PetscReal *Sig, \
                   PetscInt M, \
-                  PetscInt N,
+                  PetscInt N, \
+                  PetscReal SigMx
                   ) {
   Mat            P;                     /* P=QR factorization*/
-  Mat            Atut;  
   Vec            b,x;                   /* Atut*x = b;*/
   KSP            ksp;                   /* linear solver context */
   PetscErrorCode ierr;
   PetscInt       i,its;                 /*iteration numbers of KSP*/
-  Petsc
-  
+  PetscInt      *idxm;
+  PetscReal     *arr;
+
   getQ1(pBY, M, N);  //BY stores Q1
   
   ierr = MatMatTransposeMult(*BY, *BY,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
@@ -205,7 +206,10 @@ int tracemin_cg(  Mat *pA, \
   VecCreate(PETSC_COMM_WORLD,&x);
   VecSetSizes(x,PETSC_DECIDE,m);
   VecSetFromOptions(x);
-
+  
+  PetscMalloc(sizeof(PetscInt)*M, idxm);
+  for(i=0;i<M;i++)
+    idxm[i]=i; 
   
   for(i=0;i<N;i++){
     MatGetColumnVector(E,b,i);
@@ -213,13 +217,23 @@ int tracemin_cg(  Mat *pA, \
     KSPSetOperators(ksp,A,P);
     KSPSetNormType(ksp,KSP_NORM_UNPRECONDITIONED);
     KSPSetCheckNormIteration(ksp,-1);
-    KSPSetTolerances(ksp,1.0e-06,PETSC_DEFAULT,PETSC_DEFAULT,400);
+    KSPSetTolerances(ksp,1.0e-06,PETSC_DEFAULT,PETSC_DEFAULT,400);// KSPSetTolerances(ksp,(Sig[i]/SigMx)*(Sig[i]/SigMx),PETSC_DEFAULT,PETSC_DEFAULT,400);
     KSPSetInitialGuessNonzero(ksp,PETSC_FALSE);
     KSPSetFromOptions(ksp);
     KSPSolve(ksp,b,x);
     KSPGetIterationNumber(ksp,&its);
-    
+    VecGetArray(x,PetscScalar &arr);
+    MatSetValues(X,M,(const PetscInt *)idxm,1,(const PetscInt*)&i,(const PetscScalar*)arr, INSERT_VALUES);
+    MatAssemblyBegin(X,MAT_FINAL_ASSEMBLY);//MatAssemblyBegin(X,MAT_FLUSH_ASSEMBLY);
+    MatAssemblyEnd(X,MAT_FINAL_ASSEMBLY);//MatAssemblyEnd(X,MAT_FLUSH_ASSEMBLY);
+    VecRestoreArray(x);
   }
+  
+  PetscFree2(idxm, idxn);
+  MatDestroy(&P)
+  VecDestroy(&b);
+  VecDestroy(&x);
+  KSPDestroy(&ksp);
   return 0;
   
 }
