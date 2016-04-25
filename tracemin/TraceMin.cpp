@@ -1,5 +1,6 @@
 #include "TraceMin.h"
 #include "JacobiEigenDecomposition.h"
+#include "tracemin_cg.h"
 #include <omp.h>
 
 /* Trace Minimization for generalized eigenvalue problem: AY = BY * diag(S)
@@ -87,7 +88,7 @@ void TraceMin1(const PetscInt n,
 	/*---------------------------------------------------------------------------
 	 * start with V = [I; I; ...]
 	 *---------------------------------------------------------------------------*/
-	for (PetscInt i = 0; i < n; ++i) {
+	for (PetscInt i = 0; i < s; ++i) {
 		MatSetValue(V, i, i%s, 1.0, INSERT_VALUES);
 	}
 	MatAssemblyBegin(V, MAT_FINAL_ASSEMBLY);
@@ -115,7 +116,7 @@ void TraceMin1(const PetscInt n,
 #endif
 
 	//while (true) {
-	{
+  for (PetscInt k = 0; k < 2; ++k) {
 		/*---------------------------------------------------------------------------
 		 * M = V^T B V
 		 *---------------------------------------------------------------------------*/
@@ -205,7 +206,7 @@ void TraceMin1(const PetscInt n,
 		for (PetscInt r = 0; r < p; ++r) {
 			if (norms[r] <= 1e-7 * eigenvalues[r]) --c;
 		}
-		//if (c == 0) break;
+		if (c == 0) break;
 
 		/*---------------------------------------------------------------------------
 		 * QR factorization
@@ -214,7 +215,11 @@ void TraceMin1(const PetscInt n,
 		/*---------------------------------------------------------------------------
 		 * CG / MINRES
 		 *---------------------------------------------------------------------------*/
-	}
+    tracemin_cg(A, V, B, BY, AY, n, s); 
+    MatView(V, PETSC_VIEWER_STDOUT_SELF);
+    MatAYPX(V, -1.0, Y, SAME_NONZERO_PATTERN);
+        
+  }
 
 	/*---------------------------------------------------------------------------
 	 * stop the timer
