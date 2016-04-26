@@ -54,6 +54,7 @@ class RowCompressedMatrix {
     _ia[_num_rows] = count_nnz;
   }
 
+  RowCompressedMatrix(char const* file_name);
 
   //allcate memory for the matrix
   RowCompressedMatrix(int num_rows, int num_nnz)
