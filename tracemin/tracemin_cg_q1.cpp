@@ -43,19 +43,25 @@ PetscErrorCode tracemin_cg(const Mat A,
   Mat            V;
   Mat            PA_shell;							// matrix-free operator
   Vec            b,x;                   /* Atut*x = b;*/
+  Vec            r;
   KSP            ksp;                   /* linear solver context */
 	PC             pc;										// preconditioner
   PetscErrorCode ierr;
   PetscInt       i,its;                 /*iteration numbers of KSP*/
   PetscInt      *idxm;
   PetscReal     *arr;
+  KSPConvergedReason reason;
   
   MatConvert(BY, MATSEQAIJ, MAT_INITIAL_MATRIX, &Q1);
   getQ1(Q1, M, N);
 
+  PetscPrintf(PETSC_COMM_SELF, "Q1\n");
+  MatView(Q1, PETSC_VIEWER_STDOUT_SELF);
+
 	ProjectedMatrix PA(A, Q1);
 	MatCreateShell(PETSC_COMM_WORLD, M, M, PETSC_DETERMINE, PETSC_DETERMINE, &PA, &PA_shell);
 	MatShellSetOperation(PA_shell, MATOP_MULT, (void(*)(void))ProjectedMatrix::MultVec);
+  MatSetOption(PA_shell, MAT_SYMMETRIC, PETSC_TRUE);
   
 #if 0
   //ierr = MatMatTransposeMult(BY, BY,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
@@ -75,6 +81,8 @@ PetscErrorCode tracemin_cg(const Mat A,
 	MatMatMult(Q1, U, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &V);
 	MatAXPY(RHS, -1.0, V, SAME_NONZERO_PATTERN);
 #endif
+  PetscPrintf(PETSC_COMM_SELF, "RHS:\n");
+  MatView(RHS, PETSC_VIEWER_STDOUT_SELF);
 
   ierr = MatZeroEntries(X);CHKERRQ(ierr);
   ierr = MatAssemblyBegin(X,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
@@ -87,6 +95,10 @@ PetscErrorCode tracemin_cg(const Mat A,
   VecCreate(PETSC_COMM_WORLD,&x);
   VecSetSizes(x,PETSC_DECIDE,M);
   VecSetFromOptions(x);
+  
+  VecCreate(PETSC_COMM_WORLD,&r);
+  VecSetSizes(r,PETSC_DECIDE,M);
+  VecSetFromOptions(r);
   
   PetscMalloc1(M * sizeof(PetscInt), &idxm);
   for (PetscInt i = 0; i < M; ++i) {
@@ -105,17 +117,27 @@ PetscErrorCode tracemin_cg(const Mat A,
 	KSPGetPC(ksp, &pc);
 	PCSetType(pc, PCNONE);
 	KSPSetType(ksp, KSPCG);
+  KSPCGSetType(ksp, KSP_CG_SYMMETRIC);
 	KSPSetNormType(ksp, KSP_NORM_UNPRECONDITIONED);
-	KSPSetOperators(ksp, PA_shell, PA_shell);
+	KSPSetOperators(ksp, PA_shell, A);
 	KSPSetCheckNormIteration(ksp, -1);
-	KSPSetTolerances(ksp, 1.0e-06, PETSC_DEFAULT, PETSC_DEFAULT, 400);
+	KSPSetTolerances(ksp, 1e-7, PETSC_DEFAULT, PETSC_DEFAULT, 400);
 	KSPSetInitialGuessNonzero(ksp, PETSC_FALSE);
 	KSPSetFromOptions(ksp);
+  KSPSetUp(ksp);
 
   for(i=0;i<N;i++){
     MatGetColumnVector(RHS,b,i);
     KSPSolve(ksp,b,x);
+    KSPReasonView(ksp, PETSC_VIEWER_STDOUT_SELF);
+
+    MatMult(PA_shell, x, r);
+    VecAXPY(r, -1.0, b);
+    PetscPrintf(PETSC_COMM_SELF, "r:\n");
+    VecView(r, PETSC_VIEWER_STDOUT_SELF);
+    
     KSPGetIterationNumber(ksp,&its);
+    PetscPrintf(PETSC_COMM_SELF, "CG iter = %d\n", its);
     VecGetArray(x, &arr);
     MatSetValues(X, M, idxm, 1, &i, arr, INSERT_VALUES);
     //TODO
