@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cassert>
 #include "row_compressed_matrix.hpp"
+#include "mmio.h"
 
 using namespace std;
 
@@ -13,6 +14,75 @@ extern "C" void pardiso_chkmatrix  (int *, int *, double *, int *, int *, int *)
 extern "C" void pardiso_chkvec     (int *, int *, double *, int *);
 extern "C" void pardiso_printstats (int *, int *, double *, int *, int *, int *,
                            double *, int *);
+
+void qsort(int* ia, int* ja, double* a, int lower, int upper) {
+  // pivot = lower;
+  if (lower >= upper) {return;}
+  int midpos = lower;
+  int ti;
+  int tj;
+  double ta;
+  for (int i = lower + 1; i < upper; i++) {
+    if (ia[i] < ia[midpos] || (ia[i] == ia[midpos] && ja[i] < ja[midpos])) {
+      ti = ia[i]; tj = ja[i]; ta = a[i];
+      ia[i] = ia[midpos+1]; ja[i] = ja[midpos+1]; a[i] = a[midpos+1];
+      ia[midpos+1] = ia[midpos]; ja[midpos+1] = ja[midpos]; a[midpos+1] = a[midpos];
+      ia[midpos] = ti; ja[midpos] = tj; a[midpos] = ta;
+      midpos++;
+    }
+  }
+  qsort(ia, ja, a, lower, midpos);
+  qsort(ia, ja, a, midpos+1, upper);
+}
+
+RowCompressedMatrix::RowCompressedMatrix(const char* file_name) {
+  FILE *fp;
+  MM_typecode matcode;
+  fp = fopen(file_name, "r");
+  mm_read_banner(fp, &matcode);
+  int M, N, NNZ;
+  mm_read_mtx_crd_size(fp, &M, &N, &NNZ);
+  assert(M == N);
+  _num_rows = N;
+  _num_nnz = NNZ;
+  _allocate_memory();
+  int* dummy_ia = new int[_num_nnz];
+  //mtx stores the lower, pardiso needs the upper
+  for (int i = 0; i < NNZ; i++) {
+    fscanf(fp, "%d %d %lf\n", &(_ja[i]), &(dummy_ia[i]), &(_a[i]));
+    dummy_ia[i]--;
+    _ja[i]--;
+  }
+  bool sorted = true;
+  for (int i = 1; i < NNZ; i++) {
+    if (dummy_ia[i] < dummy_ia[i-1]) {
+      sorted = false;
+    } else if (dummy_ia[i] == dummy_ia[i-1] && _ja[i] < _ja[i-1]) {
+      sorted = false;
+    }
+  }
+  if (!sorted) {
+    std::cerr << "MTX matrix is not sorted, please sort" << std::endl;
+    exit(-1);
+  }
+  //qsort(dummy_ia, _ja, _a, 0, _num_nnz);
+  
+  for (int i = 0; i < NNZ; i++) {
+    printf("%d : <%d, %d> = %.5lf\n", i, dummy_ia[i], _ja[i], _a[i]);
+  }
+
+  int l = 0;
+  int curr_count = 0;
+  _ia[0] = 0;
+  for (int i = 0; i < _num_rows; i++) {
+    while (dummy_ia[l] <= i && l < _num_nnz) {
+      l++;
+    }
+    _ia[i+1] = l;
+  }
+  dump();
+  delete[] dummy_ia;
+}
 
 RowCompressedMatrix a_plus_mu_b(const RowCompressedMatrix& A,
                                 double mu,
