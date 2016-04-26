@@ -35,11 +35,8 @@ class ProjectedMatrix
 		Mat Q1_;
 };
 
-int tracemin_cg(Mat A,
-                Mat X,
-                Mat BY,
-                Mat AY,
-                PetscInt M,
-                PetscInt N);
+
+int tracemin_cg( Mat A, Mat X, Mat BY, Mat AY, PetscInt M, PetscInt N);
+int getQ1      ( Mat A, PetscInt M, PetscInt N);
 
 #endif // TRACE_MIN_CG
