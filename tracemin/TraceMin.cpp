@@ -1,6 +1,6 @@
 #include "TraceMin.h"
 #include "JacobiEigenDecomposition.h"
-#include "tracemin_qr_cg.h"
+#include "tracemin_cg_q1.h"
 #include <omp.h>
 
 /* Trace Minimization for generalized eigenvalue problem: AY = BY * diag(S)

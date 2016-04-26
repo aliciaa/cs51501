@@ -1,8 +1,12 @@
-#include "tracemin_qrcg.h"
+#include "tracemin_cg_q1.h"
+#include "QRFactorization.h"
+#include <petscksp.h>
 #define SIZM 10
 #define cxDebug 0
 
-PetscErrorCode ProjectedMatrix::Mult(Mat PA_shell, Vec x, Vec y)
+PetscErrorCode ProjectedMatrix::MultVec(Mat PA_shell,
+                                        Vec x,
+																				Vec y)
 {
 	ProjectedMatrix *PA;
 	PetscInt m, n;
@@ -26,15 +30,41 @@ PetscErrorCode ProjectedMatrix::Mult(Mat PA_shell, Vec x, Vec y)
 	return 0;
 }
 
-int tracemin_cg(Mat A,
-		Mat X,
-                Mat BY,
-                Mat AY,
-                PetscInt M,
-                PetscInt N)
+PetscErrorCode ProjectedMatrix::MultMat(Mat PA_shell,
+                                        Mat X,
+																				Mat Y)
+{
+	ProjectedMatrix *PA;
+	PetscInt m, n, s;
+	Mat U, V;
+
+	MatShellGetContext(PA_shell, (void**) &PA);
+	MatGetSize(PA->Q1_, &m, &n);
+	MatGetSize(X, &m, &s);
+	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, n, s, NULL, &U);
+	MatDuplicate(X, MAT_DO_NOT_COPY_VALUES, &V);
+
+	MatMatMult(PA->A_, X, MAT_REUSE_MATRIX, PETSC_DEFAULT, &Y);
+	MatTransposeMatMult(PA->Q1_, Y, MAT_REUSE_MATRIX, PETSC_DEFAULT, &U);
+	MatMatMult(PA->Q1_, U, MAT_REUSE_MATRIX, PETSC_DEFAULT, &V);
+	MatAXPY(Y, -1.0, V, SAME_NONZERO_PATTERN);
+
+	MatDestroy(&U);
+	MatDestroy(&V);
+
+	return 0;
+}
+
+PetscErrorCode tracemin_cg(Mat A,
+                           Mat X,
+													 Mat BY,
+													 Mat AY,
+													 PetscInt M,
+													 PetscInt N)
 {
   Mat            RHS;                     /* P=QR factorization*/
   Mat            P;                     /* P=QR factorization*/
+  Mat            Q1;
 	Mat            PA_shell;							// matrix-free operator
   Vec            b,x;                   /* Atut*x = b;*/
   KSP            ksp;                   /* linear solver context */
@@ -46,14 +76,15 @@ int tracemin_cg(Mat A,
   
   PetscPrintf(PETSC_COMM_SELF, "source  BY: \n");
   MatView(BY, PETSC_VIEWER_STDOUT_SELF);
-  Mat Q1;
+
   MatConvert(BY, MATSEQAIJ, MAT_INITIAL_MATRIX, &Q1);
   getQ1(Q1, M, N);  //BY stores Q1
 
 	ProjectedMatrix PA(A, Q1);
 	MatCreateShell(PETSC_COMM_WORLD, M, M, PETSC_DETERMINE, PETSC_DETERMINE, &PA, &PA_shell);
-	MatShellSetOperation(PA_shell, MATOP_MULT, (void(*)(void))ProjectedMatrix::Mult);
+	MatShellSetOperation(PA_shell, MATOP_MULT, (void(*)(void))ProjectedMatrix::MultVec);
   
+#if 0
   //ierr = MatMatTransposeMult(BY, BY,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
   ierr = MatMatTransposeMult(Q1, Q1,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
   ierr = MatAssemblyBegin(P,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
@@ -61,10 +92,14 @@ int tracemin_cg(Mat A,
   ierr = MatShift(P,-1);
   ierr = MatScale(P,-1);
   
-  //ierr = MatMatMult(A,Y,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&E);CHKERRQ(ierr);
+	//ierr = MatMatMult(A,Y,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&E);CHKERRQ(ierr);
   ierr = MatMatMult(P,AY,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&RHS);CHKERRQ(ierr); 
   ierr = MatAssemblyBegin(RHS,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(RHS,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+#else
+	MatDuplicate(AY, MAT_DO_NOT_COPY_VALUES, &RHS);
+	ProjectedMatrix::MultMat(PA_shell, AY, RHS);
+#endif
 
   ierr = MatZeroEntries(X);CHKERRQ(ierr);
   ierr = MatAssemblyBegin(X,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
@@ -78,9 +113,10 @@ int tracemin_cg(Mat A,
   VecSetSizes(x,PETSC_DECIDE,M);
   VecSetFromOptions(x);
   
-  PetscMalloc1(sizeof(PetscInt)*M, &idxm);
-  for(i=0;i<M;i++)
-    idxm[i]=i; 
+  PetscMalloc1(M * sizeof(PetscInt), &idxm);
+  for (PetscInt i = 0; i < M; ++i) {
+    idxm[i] = i;
+	}
 
   PetscPrintf(PETSC_COMM_SELF, "before CG  A: \n");
   MatView(A, PETSC_VIEWER_STDOUT_SELF);
@@ -96,8 +132,8 @@ int tracemin_cg(Mat A,
 	KSPSetNormType(ksp, KSP_NORM_UNPRECONDITIONED);
 	KSPSetOperators(ksp, PA_shell, A);
 	KSPSetCheckNormIteration(ksp, -1);
-	KSPSetTolerances(ksp,1.0e-06,PETSC_DEFAULT,PETSC_DEFAULT,400);// KSPSetTolerances(ksp,(Sig[i]/SigMx)*(Sig[i]/SigMx),PETSC_DEFAULT,PETSC_DEFAULT,400);
-	KSPSetInitialGuessNonzero(ksp,PETSC_FALSE);
+	KSPSetTolerances(ksp, 1.0e-06, PETSC_DEFAULT, PETSC_DEFAULT, 400);
+	KSPSetInitialGuessNonzero(ksp, PETSC_FALSE);
 	KSPSetFromOptions(ksp);
 
   for(i=0;i<N;i++){
@@ -115,8 +151,10 @@ int tracemin_cg(Mat A,
     VecView(x, PETSC_VIEWER_STDOUT_SELF);
   }
   
-  PetscFree(idxm);//, idxn);
-  MatDestroy(&P);
+  PetscFree(idxm);
+  //MatDestroy(&P);
+	MatDestroy(&PA_shell);
+	MatDestroy(&Q1);
   VecDestroy(&b);
   VecDestroy(&x);
   KSPDestroy(&ksp);
