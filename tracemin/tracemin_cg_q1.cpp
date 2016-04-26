@@ -6,10 +6,10 @@
 
 PetscErrorCode ProjectedMatrix::MultVec(Mat PA_shell,
                                         Vec x,
-																				Vec y)
+                                        Vec y)
 {
-	ProjectedMatrix *PA;
-	PetscInt m, n;
+  ProjectedMatrix *PA;
+  PetscInt m, n;
 	Vec u, v;
 
 	MatShellGetContext(PA_shell, (void**) &PA);
@@ -32,16 +32,16 @@ PetscErrorCode ProjectedMatrix::MultVec(Mat PA_shell,
 
 PetscErrorCode tracemin_cg(const Mat A,
                            Mat X,
-													 const Mat BY,
-													 const Mat AY,
-													 PetscInt M,
-													 PetscInt N)
+                           const Mat BY,
+                           const Mat AY,
+                           PetscInt M,
+                           PetscInt N)
 {
   Mat            RHS;                     /* P=QR factorization*/
   Mat            Q1;
-	Mat            U;
-	Mat            V;
-	Mat            PA_shell;							// matrix-free operator
+  Mat            U;
+  Mat            V;
+  Mat            PA_shell;							// matrix-free operator
   Vec            b,x;                   /* Atut*x = b;*/
   KSP            ksp;                   /* linear solver context */
 	PC             pc;										// preconditioner
