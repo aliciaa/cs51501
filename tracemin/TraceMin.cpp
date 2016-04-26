@@ -88,7 +88,7 @@ void TraceMin1(const PetscInt n,
 	/*---------------------------------------------------------------------------
 	 * start with V = [I; I; ...]
 	 *---------------------------------------------------------------------------*/
-	for (PetscInt i = 0; i < s; ++i) {
+	for (PetscInt i = 0; i < n; ++i) {
 		MatSetValue(V, i, i%s, 1.0, INSERT_VALUES);
 	}
 	MatAssemblyBegin(V, MAT_FINAL_ASSEMBLY);
@@ -100,20 +100,6 @@ void TraceMin1(const PetscInt n,
 	 * generate the order of annihiliation
 	 *---------------------------------------------------------------------------*/
 	GenerateAnnihilationOrder(s, w, orders);
-
-#if 0
-	/*---------------------------------------------------------------------------
-	 * print out the order
-	 *---------------------------------------------------------------------------*/
-	for (PetscInt i = 0; i < n; ++i) {
-		for (PetscInt j = 0; j < w; ++j) {
-			PetscPrintf(PETSC_COMM_SELF, "%2i ", orders[i * w + j]);
-		}
-		PetscPrintf(PETSC_COMM_SELF, "\n");
-	}
-
-	MatView(A, PETSC_VIEWER_STDOUT_SELF);
-#endif
 
 	//while (true) {
   for (PetscInt k = 0; k < 2; ++k) {
@@ -127,7 +113,7 @@ void TraceMin1(const PetscInt n,
 		 * Perform eigen decomposition
 		 *---------------------------------------------------------------------------*/
 		JacobiEigenDecomposition(orders, s, w, M, X, S);
-
+		
 		/*---------------------------------------------------------------------------
 		 * M = S^{-1/2}
 		 * N = X * M
@@ -153,7 +139,7 @@ void TraceMin1(const PetscInt n,
 		 * Perform eigen decomposition
 		 *---------------------------------------------------------------------------*/
 		JacobiEigenDecomposition(orders, s, w, M, X, S);
-
+		
 		/*---------------------------------------------------------------------------
 		 * Sort the eigenvalues and get the permuation
 		 *---------------------------------------------------------------------------*/
@@ -166,13 +152,12 @@ void TraceMin1(const PetscInt n,
 		PetscSortRealWithPermutation(s, eigenvalues, perm);
 		PetscSortReal(s, eigenvalues);
 		ISCreateGeneral(PETSC_COMM_SELF, s, perm, PETSC_COPY_VALUES, &col);
-
 		/*---------------------------------------------------------------------------
 		 * Permute X and postmultiply Z, BZ and AZ by X
 		 *---------------------------------------------------------------------------*/
 		MatZeroEntries(Xperm);
 		for (PetscInt j = 0; j < s; ++j) {
-			MatSetValue(Xperm, j, perm[j], 1.0, INSERT_VALUES);
+			MatSetValue(Xperm, perm[j], j, 1.0, INSERT_VALUES);
 		}	
 		MatAssemblyBegin(Xperm, MAT_FINAL_ASSEMBLY);
 		MatAssemblyEnd(Xperm, MAT_FINAL_ASSEMBLY);
@@ -184,6 +169,7 @@ void TraceMin1(const PetscInt n,
 		
 		VecPermute(S, col, PETSC_FALSE);
 		ISDestroy(&col);
+		
 		/*---------------------------------------------------------------------------
 		 * M = diag(S)
 		 *---------------------------------------------------------------------------*/
@@ -209,16 +195,11 @@ void TraceMin1(const PetscInt n,
 		if (c == 0) break;
 
 		/*---------------------------------------------------------------------------
-		 * QR factorization
-		 *---------------------------------------------------------------------------*/
-		
-		/*---------------------------------------------------------------------------
 		 * CG / MINRES
 		 *---------------------------------------------------------------------------*/
-    tracemin_cg(A, V, B, BY, AY, n, s); 
+    tracemin_cg(A, V, BY, AY, n, s); 
     MatView(V, PETSC_VIEWER_STDOUT_SELF);
     MatAYPX(V, -1.0, Y, SAME_NONZERO_PATTERN);
-        
   }
 
 	/*---------------------------------------------------------------------------
@@ -227,8 +208,12 @@ void TraceMin1(const PetscInt n,
 	t_end = omp_get_wtime();
 	PetscPrintf(PETSC_COMM_SELF, "Total time = %lf\n", t_end - t_start);
 
-	MatView(X, PETSC_VIEWER_STDOUT_SELF);
-	VecView(S, PETSC_VIEWER_STDOUT_SELF);
+#if 0
+	PetscPrintf(PETSC_COMM_SELF, "AY:\n");
+	MatView(AY, PETSC_VIEWER_STDOUT_SELF);
+	PetscPrintf(PETSC_COMM_SELF, "BY:\n");
+	MatView(BY, PETSC_VIEWER_STDOUT_SELF);
+#endif
 
 	/*---------------------------------------------------------------------------
 	 * deallocate the matrices, vectors and index sets

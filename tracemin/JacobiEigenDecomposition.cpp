@@ -77,6 +77,7 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 	 * set the vector Ai to be all ones and the matrix V to be the identity
 	 *---------------------------------------------------------------------------*/
 	VecSet(D, 1.0);
+	MatZeroEntries(V);
 	MatDiagonalSet(V, D, INSERT_VALUES);
 	MatAssemblyBegin(V, MAT_FINAL_ASSEMBLY);
 	MatAssemblyEnd(V, MAT_FINAL_ASSEMBLY);
@@ -109,7 +110,7 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 				MatSetValue(U, r, r, 1.0, INSERT_VALUES);
 			}
 
-#pragma omp parallel for private(p, i, j, aii, ajj, aij, a, t, c, s)
+//#pragma omp parallel for private(p, i, j, aii, ajj, aij, a, t, c, s)
 			for (p = 0; p < m; ++p) {
 				i = currOrders[2*p];
 				j = currOrders[2*p+1];

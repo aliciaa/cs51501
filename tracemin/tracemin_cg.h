@@ -48,13 +48,11 @@ T*/
 #include <petscksp.h>
 #include <petscmat.h>
 
-int tracemin_cg(  Mat A, \
-                  Mat X, \
-                  Mat B, \
-                  Mat BY, \
-                  Mat AY, \
-                  PetscInt M, \
-                  PetscInt N \
-                  );
+int tracemin_cg(Mat A,
+                Mat X,
+                Mat BY,
+                Mat AY,
+                PetscInt M,
+                PetscInt N);
 
 #endif // TRACE_MIN_CG

@@ -10,9 +10,7 @@ int getQ1(Mat *pA, PetscInt M, PetscInt N){
   PetscInt worksize;
   PetscErrorCode ierr;
 
-
   //ierr = MatGetSize(*pA,&m,&n);CHKERRQ(ierr);
-  
   PetscBLASIntCast(M,&MM);
   PetscBLASIntCast(N,&NN);
   
@@ -25,7 +23,6 @@ int getQ1(Mat *pA, PetscInt M, PetscInt N){
 
   K = NN;     /*full rank*/   
   lda = MM ; //N - row domain   M - col domain
- 
 
   //ierr = PetscPrintf (PETSC_COMM_SELF,"L72\n");CHKERRQ(ierr);
   //ierr = MatView(*pA,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
@@ -37,10 +34,10 @@ int getQ1(Mat *pA, PetscInt M, PetscInt N){
   PetscReal* arr;
   PetscMalloc1(sizeof(PetscReal)*M*N, &arr);
   
-  for(i=0; i<10; i++){
+  for(i=0; i<M; i++){
     ierr = MatGetRow(*pA,i,&nC,(const PetscInt **)&Is,(const PetscScalar **)&v); CHKERRQ(ierr);
     for(j=0; j<nC; j++){
-      arr[i+10*Is[j]]=v[j];
+      arr[i+M*Is[j]]=v[j];
     }
     ierr = MatRestoreRow(*pA,i,&nC,(const PetscInt**)&Is,(const PetscScalar**)&v); CHKERRQ(ierr);
   }
@@ -56,12 +53,11 @@ int getQ1(Mat *pA, PetscInt M, PetscInt N){
   LAPACKungqr_(&M,&N,&K,arr,&lda,tau,work,&ldwork,&info);
   if (info) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"xORGQR/xUNGQR error");
    
-  for (i=0; i<10; i++) {
-    for(j=0; j<4; j++) {
-      ierr = MatSetValues(*pA,1,&i,1,&j,&arr[i+j*10],INSERT_VALUES);CHKERRQ(ierr);
+  for (i=0; i<M; i++) {
+    for(j=0; j<N; j++) {
+      ierr = MatSetValues(*pA,1,&i,1,&j,&arr[i+j*M],INSERT_VALUES);CHKERRQ(ierr);
    }
   }
-
 
   ierr = MatAssemblyBegin(*pA,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(*pA,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
@@ -118,16 +114,13 @@ int readmm(char s[], Mat *pA){
   return 0;
 }
 
-
-
-int tracemin_cg(  Mat A, \
-                  Mat X, \
-                  Mat B,\
-                  Mat BY_, \
-                  Mat AY_, \
-                  PetscInt M, \
-                  PetscInt N \
-                  ) {
+int tracemin_cg(Mat A,
+								Mat X,
+                Mat BY,
+                Mat AY,
+                PetscInt M,
+                PetscInt N)
+{
   Mat            RHS;                     /* P=QR factorization*/
   Mat            P;                     /* P=QR factorization*/
   Vec            b,x;                   /* Atut*x = b;*/
@@ -136,18 +129,7 @@ int tracemin_cg(  Mat A, \
   PetscInt       i,its;                 /*iteration numbers of KSP*/
   PetscInt      *idxm;
   PetscReal     *arr;
-
   
-  Mat Y;
-  readmm("/homes/cheng172/datStep/Y_step2.mtx",&Y);   
-  Mat BY, AY;
-  
-  MatMatMult(B,Y,MAT_INITIAL_MATRIX,PETSC_DEFAULT, &BY);CHKERRQ(ierr); 
-  MatMatMult(A,Y,MAT_INITIAL_MATRIX,PETSC_DEFAULT, &AY);CHKERRQ(ierr); 
-  
-
-
-
   PetscPrintf(PETSC_COMM_SELF, "source  BY: \n");
   MatView(BY, PETSC_VIEWER_STDOUT_SELF);
   Mat Q1;
@@ -181,8 +163,6 @@ int tracemin_cg(  Mat A, \
   PetscMalloc1(sizeof(PetscInt)*M, &idxm);
   for(i=0;i<M;i++)
     idxm[i]=i; 
- 
-
 
   PetscPrintf(PETSC_COMM_SELF, "before CG  A: \n");
   MatView(A, PETSC_VIEWER_STDOUT_SELF);
@@ -191,24 +171,24 @@ int tracemin_cg(  Mat A, \
   PetscPrintf(PETSC_COMM_SELF, "before CG  RHS: \n");
   MatView(RHS, PETSC_VIEWER_STDOUT_SELF);
 
-
+	KSPCreate(PETSC_COMM_WORLD, &ksp);
+	KSPSetType(ksp, KSPCG);
+	KSPSetNormType(ksp, KSP_NORM_UNPRECONDITIONED);
+	KSPSetOperators(ksp, A ,P);
+	KSPSetCheckNormIteration(ksp, -1);
+	KSPSetTolerances(ksp,1.0e-06,PETSC_DEFAULT,PETSC_DEFAULT,400);// KSPSetTolerances(ksp,(Sig[i]/SigMx)*(Sig[i]/SigMx),PETSC_DEFAULT,PETSC_DEFAULT,400);
+	KSPSetInitialGuessNonzero(ksp,PETSC_FALSE);
+	KSPSetFromOptions(ksp);
 
   for(i=0;i<N;i++){
     MatGetColumnVector(RHS,b,i);
-    KSPCreate(PETSC_COMM_WORLD,&ksp);
-    KSPSetOperators(ksp,A,P);
-    KSPSetNormType(ksp,KSP_NORM_UNPRECONDITIONED);
-    KSPSetCheckNormIteration(ksp,-1);
-    KSPSetTolerances(ksp,1.0e-06,PETSC_DEFAULT,PETSC_DEFAULT,400);// KSPSetTolerances(ksp,(Sig[i]/SigMx)*(Sig[i]/SigMx),PETSC_DEFAULT,PETSC_DEFAULT,400);
-    KSPSetInitialGuessNonzero(ksp,PETSC_FALSE);
-    KSPSetFromOptions(ksp);
     KSPSolve(ksp,b,x);
     KSPGetIterationNumber(ksp,&its);
     VecGetArray(x, &arr);
-    MatSetValues(X,M,(const PetscInt *)idxm,1,(const PetscInt*)&i,(const PetscScalar*)arr, INSERT_VALUES);
+    MatSetValues(X, M, idxm, 1, &i, arr, INSERT_VALUES);
     //TODO
-    MatAssemblyBegin(X,MAT_FINAL_ASSEMBLY);//MatAssemblyBegin(X,MAT_FLUSH_ASSEMBLY);
-    MatAssemblyEnd(X,MAT_FINAL_ASSEMBLY);//MatAssemblyEnd(X,MAT_FLUSH_ASSEMBLY);
+    MatAssemblyBegin(X, MAT_FINAL_ASSEMBLY);//MatAssemblyBegin(X,MAT_FLUSH_ASSEMBLY);
+    MatAssemblyEnd(X, MAT_FINAL_ASSEMBLY);//MatAssemblyEnd(X,MAT_FLUSH_ASSEMBLY);
     VecRestoreArray(x, &arr );
     
     PetscPrintf(PETSC_COMM_SELF, "CG  Col%d x: \n", i);
@@ -220,6 +200,6 @@ int tracemin_cg(  Mat A, \
   VecDestroy(&b);
   VecDestroy(&x);
   KSPDestroy(&ksp);
-  return 0;
-  
+
+	return 0;
 }

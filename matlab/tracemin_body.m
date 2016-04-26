@@ -49,7 +49,10 @@ end
 s = 2*k;
 [n,n] = size(A);
 THRESHOLD = 1e-6;           %threshold 
-Z = eye(n,s);
+Z = zeros(n, s);
+for i = 1:n
+    Z(i,mod(i,s)) = 1.0;
+end
 
 while 1
   [Q,Sigma] = eig(Z'*B*Z);
