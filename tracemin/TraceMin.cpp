@@ -102,7 +102,7 @@ void TraceMin1(const PetscInt n,
 	GenerateAnnihilationOrder(s, w, orders);
 
 	//while (true) {
-  for (PetscInt k = 0; k < 2; ++k) {
+  for (PetscInt k = 0; k < 3; ++k) {
 		/*---------------------------------------------------------------------------
 		 * M = V^T B V
 		 *---------------------------------------------------------------------------*/
@@ -113,7 +113,7 @@ void TraceMin1(const PetscInt n,
 		 * Perform eigen decomposition
 		 *---------------------------------------------------------------------------*/
 		JacobiEigenDecomposition(orders, s, w, M, X, S);
-		
+
 		/*---------------------------------------------------------------------------
 		 * M = S^{-1/2}
 		 * N = X * M
@@ -170,6 +170,9 @@ void TraceMin1(const PetscInt n,
 		VecPermute(S, col, PETSC_FALSE);
 		ISDestroy(&col);
 		
+//		PetscPrintf(PETSC_COMM_SELF, "Y:\n");
+//    MatView(Y, PETSC_VIEWER_STDOUT_SELF);
+
 		/*---------------------------------------------------------------------------
 		 * M = diag(S)
 		 *---------------------------------------------------------------------------*/
@@ -190,16 +193,18 @@ void TraceMin1(const PetscInt n,
 		MatGetColumnNorms(R, NORM_2, norms);
 		c = p;
 		for (PetscInt r = 0; r < p; ++r) {
-			if (norms[r] <= 1e-7 * eigenvalues[r]) --c;
+			if (norms[r] <= 1e-3 * eigenvalues[r]) --c;
 		}
+		PetscPrintf(PETSC_COMM_SELF, "Number of converged columns = %d\n", c);
 		if (c == 0) break;
-
+		
 		/*---------------------------------------------------------------------------
 		 * CG / MINRES
 		 *---------------------------------------------------------------------------*/
     tracemin_cg(A, V, BY, AY, n, s); 
-    MatView(V, PETSC_VIEWER_STDOUT_SELF);
     MatAYPX(V, -1.0, Y, SAME_NONZERO_PATTERN);
+//		PetscPrintf(PETSC_COMM_SELF, "V:\n");
+//    MatView(V, PETSC_VIEWER_STDOUT_SELF);
   }
 
 	/*---------------------------------------------------------------------------
@@ -231,6 +236,7 @@ void TraceMin1(const PetscInt n,
 	MatDestroy(&Z);
 	MatDestroy(&R);
 	VecDestroy(&MS);
+	VecDestroy(&S);
 	
 	/*---------------------------------------------------------------------------
 	 * deallocate the arrays
