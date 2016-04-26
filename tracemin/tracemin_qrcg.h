@@ -20,10 +20,20 @@
 #include <petscviewer.h>
 #include <petscdmplex.h>
 #include <petscdmshell.h>
-
-
 #include <petscksp.h>
 #include <petscmat.h>
+
+class ProjectedMatrix
+{
+	public:
+		ProjectedMatrix(Mat A, Mat Q1) : A_(A), Q1_(Q1) { }
+		~ProjectedMatrix() { }
+
+		static PetscErrorCode Mult(Mat PA_shell, Vec x, Vec y);
+
+		Mat A_;
+		Mat Q1_;
+};
 
 int tracemin_cg( Mat A, Mat X, Mat BY, Mat AY, PetscInt M, PetscInt N);
 int getQ1      ( Mat A, PetscInt M, PetscInt N); 
