@@ -1,5 +1,4 @@
 #include "tracemin_cg_q1.h"
-#include "QRFactorization.h"
 #include <petscksp.h>
 #define SIZM 10
 #define cxDebug 0
@@ -31,62 +30,28 @@ PetscErrorCode ProjectedMatrix::MultVec(Mat PA_shell,
 }
 
 PetscErrorCode tracemin_cg(const Mat A,
+                           const Mat Q1,
+                           const Mat RHS,
                            Mat X,
-                           const Mat BY,
-                           const Mat AY,
                            PetscInt M,
                            PetscInt N)
 {
-  Mat            RHS;                     /* P=QR factorization*/
-  Mat            Q1;
-  Mat            U;
-  Mat            V;
   Mat            PA_shell;							// matrix-free operator
   Vec            b,x;                   /* Atut*x = b;*/
   Vec            r;
   KSP            ksp;                   /* linear solver context */
 	PC             pc;										// preconditioner
   PetscErrorCode ierr;
-  PetscInt       i,its;                 /*iteration numbers of KSP*/
-  PetscInt      *idxm;
-  PetscReal     *arr;
-  KSPConvergedReason reason;
+  PetscInt       its;                 /*iteration numbers of KSP*/
+  PetscInt       *idxm;
+  PetscReal      *arr;
   
-  MatConvert(BY, MATSEQAIJ, MAT_INITIAL_MATRIX, &Q1);
-  getQ1(Q1, M, N);
-
-  PetscPrintf(PETSC_COMM_SELF, "Q1\n");
-  MatView(Q1, PETSC_VIEWER_STDOUT_SELF);
-
 	ProjectedMatrix PA(A, Q1);
 	MatCreateShell(PETSC_COMM_WORLD, M, M, PETSC_DETERMINE, PETSC_DETERMINE, &PA, &PA_shell);
 	MatShellSetOperation(PA_shell, MATOP_MULT, (void(*)(void))ProjectedMatrix::MultVec);
   MatSetOption(PA_shell, MAT_SYMMETRIC, PETSC_TRUE);
   
-#if 0
-  //ierr = MatMatTransposeMult(BY, BY,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
-  ierr = MatMatTransposeMult(Q1, Q1,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
-  ierr = MatAssemblyBegin(P,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(P,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatShift(P,-1);
-  ierr = MatScale(P,-1);
-  
-	//ierr = MatMatMult(A,Y,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&E);CHKERRQ(ierr);
-  ierr = MatMatMult(P,AY,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&RHS);CHKERRQ(ierr); 
-  ierr = MatAssemblyBegin(RHS,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(RHS,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-#else
-	MatDuplicate(AY, MAT_COPY_VALUES, &RHS);
-	MatTransposeMatMult(Q1, AY, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &U);
-	MatMatMult(Q1, U, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &V);
-	MatAXPY(RHS, -1.0, V, SAME_NONZERO_PATTERN);
-#endif
-  PetscPrintf(PETSC_COMM_SELF, "RHS:\n");
-  MatView(RHS, PETSC_VIEWER_STDOUT_SELF);
-
   ierr = MatZeroEntries(X);CHKERRQ(ierr);
-  ierr = MatAssemblyBegin(X,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(X,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
  
   VecCreate(PETSC_COMM_WORLD,&b);
   VecSetSizes(b,PETSC_DECIDE,M);
@@ -100,7 +65,7 @@ PetscErrorCode tracemin_cg(const Mat A,
   VecSetSizes(r,PETSC_DECIDE,M);
   VecSetFromOptions(r);
   
-  PetscMalloc1(M * sizeof(PetscInt), &idxm);
+  PetscMalloc1(M, &idxm);
   for (PetscInt i = 0; i < M; ++i) {
     idxm[i] = i;
 	}
@@ -126,9 +91,9 @@ PetscErrorCode tracemin_cg(const Mat A,
 	KSPSetFromOptions(ksp);
   KSPSetUp(ksp);
 
-  for(i=0;i<N;i++){
-    MatGetColumnVector(RHS,b,i);
-    KSPSolve(ksp,b,x);
+  for (PetscInt i = 0; i < N; ++i) {
+    MatGetColumnVector(RHS, b, i);
+    KSPSolve(ksp, b, x);
     KSPReasonView(ksp, PETSC_VIEWER_STDOUT_SELF);
 
     MatMult(PA_shell, x, r);
@@ -143,7 +108,7 @@ PetscErrorCode tracemin_cg(const Mat A,
     //TODO
     MatAssemblyBegin(X, MAT_FINAL_ASSEMBLY);//MatAssemblyBegin(X,MAT_FLUSH_ASSEMBLY);
     MatAssemblyEnd(X, MAT_FINAL_ASSEMBLY);//MatAssemblyEnd(X,MAT_FLUSH_ASSEMBLY);
-    VecRestoreArray(x, &arr );
+    VecRestoreArray(x, &arr);
  
 #if 1
     PetscPrintf(PETSC_COMM_SELF, "CG  Col%d x: \n", i);
@@ -152,12 +117,7 @@ PetscErrorCode tracemin_cg(const Mat A,
   }
   
   PetscFree(idxm);
-  //MatDestroy(&P);
 	MatDestroy(&PA_shell);
-	MatDestroy(&RHS);
-	MatDestroy(&Q1);
-	MatDestroy(&U);
-	MatDestroy(&V);
   VecDestroy(&b);
   VecDestroy(&x);
   KSPDestroy(&ksp);

@@ -1,5 +1,6 @@
 #include "TraceMin.h"
 #include "JacobiEigenDecomposition.h"
+#include "QRFactorization.h"
 #include "tracemin_cg_q1.h"
 #include <omp.h>
 
@@ -41,6 +42,8 @@ void TraceMin1(const PetscInt n,
 			N,
 			X,
 			Xperm,
+      U,
+      W,
 			Z,
 			R;
 	Vec MS;														// the magnitude of S
@@ -57,6 +60,8 @@ void TraceMin1(const PetscInt n,
 	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, s, s, NULL, &N);
 	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, s, s, NULL, &X);
 	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, s, s, NULL, &Xperm);
+	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, s, s, NULL, &U);
+	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, n, s, NULL, &W);
 	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, n, s, NULL, &Z);
 	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, n, s, NULL, &AZ);
 	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, n, s, NULL, &AY);
@@ -76,9 +81,9 @@ void TraceMin1(const PetscInt n,
 	/*---------------------------------------------------------------------------
 	 * allocate memory for arrays for eigenvalues and permutation
 	 *---------------------------------------------------------------------------*/
-	PetscMalloc1(s * sizeof(PetscReal), &eigenvalues);
-	PetscMalloc1(s * sizeof(PetscReal), &norms);
-	PetscMalloc1(s * sizeof(PetscInt), &perm);
+	PetscMalloc1(s, &eigenvalues);
+	PetscMalloc1(s, &norms);
+	PetscMalloc1(s, &perm);
 
 	/*---------------------------------------------------------------------------
 	 * start the timer
@@ -199,9 +204,27 @@ void TraceMin1(const PetscInt n,
 		if (c == 0) break;
 		
 		/*---------------------------------------------------------------------------
+		 * Perform QR factorization of BY and get Q1
+		 *---------------------------------------------------------------------------*/
+    QRFactorizationQ1(BY);
+
+    PetscPrintf(PETSC_COMM_SELF, "Q1\n");
+    MatView(BY, PETSC_VIEWER_STDOUT_SELF);
+
+		/*---------------------------------------------------------------------------
+		 * Compute the right-hand-side of the reduced system
+		 *---------------------------------------------------------------------------*/
+    MatTransposeMatMult(BY, AY, MAT_REUSE_MATRIX, PETSC_DEFAULT, &U);
+    MatMatMult(BY, U, MAT_REUSE_MATRIX, PETSC_DEFAULT, &W);
+    MatAXPY(AY, -1.0, W, SAME_NONZERO_PATTERN);
+
+    PetscPrintf(PETSC_COMM_SELF, "RHS:\n");
+    MatView(AY, PETSC_VIEWER_STDOUT_SELF);
+
+		/*---------------------------------------------------------------------------
 		 * CG / MINRES
 		 *---------------------------------------------------------------------------*/
-    tracemin_cg(A, V, BY, AY, n, s); 
+    tracemin_cg(A, BY, AY, V, n, s); 
     MatAYPX(V, -1.0, Y, SAME_NONZERO_PATTERN);
 //		PetscPrintf(PETSC_COMM_SELF, "V:\n");
 //    MatView(V, PETSC_VIEWER_STDOUT_SELF);
@@ -233,6 +256,8 @@ void TraceMin1(const PetscInt n,
 	MatDestroy(&N);
 	MatDestroy(&X);
 	MatDestroy(&Xperm);
+	MatDestroy(&U);
+	MatDestroy(&W);
 	MatDestroy(&Z);
 	MatDestroy(&R);
 	VecDestroy(&MS);

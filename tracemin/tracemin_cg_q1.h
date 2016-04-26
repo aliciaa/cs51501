@@ -16,6 +16,11 @@ class ProjectedMatrix
 };
 
 
-PetscErrorCode tracemin_cg(const Mat A, Mat X, const Mat BY, const Mat AY, PetscInt M, PetscInt N);
+PetscErrorCode tracemin_cg(const Mat A,
+                           const Mat Q1,
+                           const Mat RHS,
+                           Mat X,
+                           PetscInt M,
+                           PetscInt N);
 
 #endif // TRACE_MIN_CG

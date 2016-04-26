@@ -3,59 +3,34 @@
 #include <petscblaslapack.h>
 
 //QR fact A, overwrite A with Q1
-PetscErrorCode getQ1(Mat A, PetscInt M, PetscInt N){
-  int i,j;
-  PetscBLASInt   MM,NN,K,lda,ldwork,info;
-  PetscScalar   *tau,*work; 
-  PetscInt       worksize;
-  PetscErrorCode ierr;
+PetscErrorCode QRFactorizationQ1(Mat A)
+{
+  PetscInt       m, n;
+  PetscScalar    *a, *tau, *work;
+  PetscBLASInt   info;
 
-  //ierr = MatGetSize(*pA,&M,&N);CHKERRQ(ierr);
-  PetscBLASIntCast(M,&MM);
-  PetscBLASIntCast(N,&NN);
-  
-  worksize=MM;
-  PetscBLASIntCast(worksize,&ldwork);
-  PetscMalloc1(MM, &tau);//worksize,&work);
-  PetscMalloc1(MM, &work);
-  K = NN;        /*full rank*/   
-  lda = MM ;     //col domain
+  MatGetSize(A, &m, &n);
 
-  //PETSc does not have QR, LAPACK does.  Prepare the memory for LAPACK
-  PetscScalar *v;
-  PetscInt *Is; 
-  PetscInt nC;
-  PetscReal* arr;
-  PetscMalloc1(sizeof(PetscReal)*M*N, &arr);
-  for(i=0; i<M*N; i++)
-    arr[i]=0.0;
-  for(i=0; i<M; i++){
-    ierr = MatGetRow(A,i,&nC,(const PetscInt **)&Is,(const PetscScalar **)&v); CHKERRQ(ierr);
-    if((&nC)!=NULL)
-      for(j=0; j<nC; j++)
-        arr[i+M*Is[j]]=v[j];
-    ierr = MatRestoreRow(A,i,&nC,(const PetscInt**)&Is,(const PetscScalar**)&v); CHKERRQ(ierr);
-  }
+  PetscMalloc1(m, &tau);
+  PetscMalloc1(m, &work);
 
+  MatDenseGetArray(A, &a);
 
-  // Do QR and Extract an explicit representation of Q
+  // Do QR and extract an explicit representation of Q1
   PetscFPTrapPush(PETSC_FP_TRAP_OFF);
-  LAPACKgeqrf_(&M,&N,arr,&lda,tau,work,&ldwork,&info);
+  LAPACKgeqrf_(&m, &n, a, &m, tau, work, &m, &info);
   PetscFPTrapPop();
-  if (info) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"xGEQRF error");
-  LAPACKungqr_(&M,&N,&K,arr,&lda,tau,work,&ldwork,&info);
-  if (info) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"xORGQR/xUNGQR error");
+  if (info) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "xGEQRF error");
+  LAPACKungqr_(&m, &n, &n, a, &m, tau, work, &m, &info);
+  if (info) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "xORGQR/xUNGQR error");
   
+  MatDenseRestoreArray(A, &a);
+  MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
+  
+  PetscFree(tau);
+  PetscFree(work);
 
-  //GO back from LAPACK to PETSc.    TODO: needed optimization
-  for (i=0; i<M; i++) {
-    for(j=0; j<N; j++) {
-      ierr = MatSetValues(A,1,&i,1,&j,&arr[i+j*M],INSERT_VALUES);CHKERRQ(ierr);
-   }
-  }
-  ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(  A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = PetscFree(arr);CHKERRQ(ierr);
   return 0; 
 }
 

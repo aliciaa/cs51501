@@ -3,6 +3,6 @@
 
 #include <petscmat.h>
 
-PetscErrorCode getQ1(Mat A, PetscInt M, PetscInt N);
+PetscErrorCode QRFactorizationQ1(Mat A);
 
 #endif // QR_FACTORIZATION
