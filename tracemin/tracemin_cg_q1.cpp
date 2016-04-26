@@ -43,24 +43,22 @@ int tracemin_cg(Mat A,
   PetscInt      *idxm;
   PetscReal     *arr;
   
-  PetscPrintf(PETSC_COMM_SELF, "source  BY: \n");
-  MatView(BY, PETSC_VIEWER_STDOUT_SELF);
+  //PetscPrintf(PETSC_COMM_SELF, "source  BY: \n");
+  //MatView(BY, PETSC_VIEWER_STDOUT_SELF);
   Mat Q1;
   MatConvert(BY, MATSEQAIJ, MAT_INITIAL_MATRIX, &Q1);
-  getQ1(Q1, M, N);  //BY stores Q1
-
+  getQ1(Q1, M, N);  
+  
 	ProjectedMatrix PA(A, Q1);
 	MatCreateShell(PETSC_COMM_WORLD, M, M, PETSC_DETERMINE, PETSC_DETERMINE, &PA, &PA_shell);
 	MatShellSetOperation(PA_shell, MATOP_MULT, (void(*)(void))ProjectedMatrix::Mult);
   
-  //ierr = MatMatTransposeMult(BY, BY,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
   ierr = MatMatTransposeMult(Q1, Q1,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
   ierr = MatAssemblyBegin(P,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(P,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatShift(P,-1);
   ierr = MatScale(P,-1);
   
-  //ierr = MatMatMult(A,Y,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&E);CHKERRQ(ierr);
   ierr = MatMatMult(P,AY,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&RHS);CHKERRQ(ierr); 
   ierr = MatAssemblyBegin(RHS,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(RHS,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
@@ -152,7 +150,7 @@ int readmm(char s[], Mat *pA){
   fclose(file);
   //ierr = PetscPrintf(PETSC_COMM_SELF,"Read file completes.\n");CHKERRQ(ierr);
 
-  /* Creat and asseble matrix */
+  /* Create and asseble matrix */
   ierr = MatCreate(PETSC_COMM_SELF,pA);CHKERRQ(ierr);
   ierr = MatSetType(*pA, /*MATDENSE*/ MATSEQAIJ );CHKERRQ(ierr);
   ierr = MatSetSizes(*pA,PETSC_DECIDE,PETSC_DECIDE,m,n);CHKERRQ(ierr);
