@@ -11,3 +11,8 @@
 $make tracemin
 ./run.sh
 </pre>
+
+
+
+#### Where is QR factorilization
+* <code>int getQ1(A,M,N); </code> in *tracemin_qr.cpp*. 
