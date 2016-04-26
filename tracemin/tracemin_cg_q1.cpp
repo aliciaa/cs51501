@@ -1,8 +1,6 @@
 #include "tracemin_cg_q1.h"
 #include "QRFactorization.h"
 #include <petscksp.h>
-#define SIZM 10
-#define cxDebug 0
 
 PetscErrorCode ProjectedMatrix::MultVec(Mat PA_shell,
                                         Vec x,
@@ -62,48 +60,28 @@ PetscErrorCode tracemin_cg(Mat A,
 													 PetscInt M,
 													 PetscInt N)
 {
-  Mat            RHS;                     /* P=QR factorization*/
-  Mat            P;                     /* P=QR factorization*/
-  Mat            Q1;
+  Mat            Q1;										// projection matrix
 	Mat            PA_shell;							// matrix-free operator
-  Vec            b,x;                   /* Atut*x = b;*/
-  KSP            ksp;                   /* linear solver context */
+  Mat            RHS;                  	// right-hand-side matrix
+  Vec            b, x;                  // vectors for CG
+  KSP            ksp;                   // CG iterative solver
 	PC             pc;										// preconditioner
   PetscErrorCode ierr;
   PetscInt       i,its;                 /*iteration numbers of KSP*/
   PetscInt      *idxm;
   PetscReal     *arr;
   
-  PetscPrintf(PETSC_COMM_SELF, "source  BY: \n");
-  MatView(BY, PETSC_VIEWER_STDOUT_SELF);
-
   MatConvert(BY, MATSEQAIJ, MAT_INITIAL_MATRIX, &Q1);
-  getQ1(Q1, M, N);  //BY stores Q1
+  getQ1(Q1, M, N);
 
 	ProjectedMatrix PA(A, Q1);
 	MatCreateShell(PETSC_COMM_WORLD, M, M, PETSC_DETERMINE, PETSC_DETERMINE, &PA, &PA_shell);
 	MatShellSetOperation(PA_shell, MATOP_MULT, (void(*)(void))ProjectedMatrix::MultVec);
   
-#if 0
-  //ierr = MatMatTransposeMult(BY, BY,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
-  ierr = MatMatTransposeMult(Q1, Q1,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
-  ierr = MatAssemblyBegin(P,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(P,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatShift(P,-1);
-  ierr = MatScale(P,-1);
-  
-	//ierr = MatMatMult(A,Y,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&E);CHKERRQ(ierr);
-  ierr = MatMatMult(P,AY,MAT_INITIAL_MATRIX,PETSC_DEFAULT,&RHS);CHKERRQ(ierr); 
-  ierr = MatAssemblyBegin(RHS,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(RHS,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-#else
 	MatDuplicate(AY, MAT_DO_NOT_COPY_VALUES, &RHS);
 	ProjectedMatrix::MultMat(PA_shell, AY, RHS);
-#endif
 
-  ierr = MatZeroEntries(X);CHKERRQ(ierr);
-  ierr = MatAssemblyBegin(X,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(X,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  MatZeroEntries(X);
  
   VecCreate(PETSC_COMM_WORLD,&b);
   VecSetSizes(b,PETSC_DECIDE,M);
@@ -142,9 +120,8 @@ PetscErrorCode tracemin_cg(Mat A,
     KSPGetIterationNumber(ksp,&its);
     VecGetArray(x, &arr);
     MatSetValues(X, M, idxm, 1, &i, arr, INSERT_VALUES);
-    //TODO
-    MatAssemblyBegin(X, MAT_FINAL_ASSEMBLY);//MatAssemblyBegin(X,MAT_FLUSH_ASSEMBLY);
-    MatAssemblyEnd(X, MAT_FINAL_ASSEMBLY);//MatAssemblyEnd(X,MAT_FLUSH_ASSEMBLY);
+    MatAssemblyBegin(X, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(X, MAT_FINAL_ASSEMBLY);
     VecRestoreArray(x, &arr );
     
     PetscPrintf(PETSC_COMM_SELF, "CG  Col%d x: \n", i);
@@ -152,7 +129,6 @@ PetscErrorCode tracemin_cg(Mat A,
   }
   
   PetscFree(idxm);
-  //MatDestroy(&P);
 	MatDestroy(&PA_shell);
 	MatDestroy(&Q1);
   VecDestroy(&b);
@@ -191,7 +167,7 @@ int readmm(char s[], Mat *pA){
   fclose(file);
   //ierr = PetscPrintf(PETSC_COMM_SELF,"Read file completes.\n");CHKERRQ(ierr);
 
-  /* Creat and asseble matrix */
+  /* Create and asseble matrix */
   ierr = MatCreate(PETSC_COMM_SELF,pA);CHKERRQ(ierr);
   ierr = MatSetType(*pA, /*MATDENSE*/ MATSEQAIJ );CHKERRQ(ierr);
   ierr = MatSetSizes(*pA,PETSC_DECIDE,PETSC_DECIDE,m,n);CHKERRQ(ierr);
