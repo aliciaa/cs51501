@@ -15,4 +15,9 @@ $make tracemin
 
 
 #### Where is QR factorilization
-* <code>int getQ1(A,M,N); </code> in *tracemin_qr.cpp*. 
+* <code>int getQ1(A,M,N); </code> in *tracemin_qr.cpp*.   
+where A is matrix to be QR factorilization  
+A would be overwrited with the result Q1  
+A is a M by N matrix;
+
+
