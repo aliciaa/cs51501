@@ -1,5 +1,4 @@
-#include "tracemin_qrcg.h"
-#define SIZM 10
+#include "tracemin_qr_cg.h"
 #define cxDebug 0
 
 PetscErrorCode ProjectedMatrix::Mult(Mat PA_shell, Vec x, Vec y)
