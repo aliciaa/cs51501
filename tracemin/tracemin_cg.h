@@ -20,33 +20,20 @@
 #include <petscviewer.h>
 #include <petscdmplex.h>
 #include <petscdmshell.h>
-
-
-//#include <petscdt.h>            /*I "petscdt.h" I*/
-//#include <petscblaslapack.h>
-//#include <petsc-private/petscimpl.h>
-//#include <petscviewer.h>
-
-
-
-
-/*T
-   Concepts: KSP^basic parallel example;
-   Processors: n
-T*/
-
-/*
-  Include "petscksp.h" so that we can use KSP solvers.  Note that this file
-  automatically includes:
-     petscsys.h       - base PETSc routines   petscvec.h - vectors
-     petscmat.h - matrices
-     petscis.h     - index sets            petscksp.h - Krylov subspace methods
-     petscviewer.h - viewers               petscpc.h  - preconditioners
-
-  Note:  The corresponding uniprocessor example is ex1.c
-*/
 #include <petscksp.h>
 #include <petscmat.h>
+
+class ProjectedMatrix
+{
+	public:
+		ProjectedMatrix(Mat A, Mat Q1) : A_(A), Q1_(Q1) { }
+		~ProjectedMatrix() { }
+
+		static PetscErrorCode Mult(Mat PA_shell, Vec x, Vec y);
+
+		Mat A_;
+		Mat Q1_;
+};
 
 int tracemin_cg(Mat A,
                 Mat X,

@@ -2,6 +2,29 @@
 #define SIZM 10
 #define cxDebug 0
 
+PetscErrorCode ProjectedMatrix::Mult(Mat PA_shell, Vec x, Vec y)
+{
+	ProjectedMatrix *PA;
+	PetscInt m, n;
+	Vec u, v;
+
+	MatShellGetContext(PA_shell, (void**) &PA);
+	MatGetSize(PA->Q1_, &m, &n);
+	VecCreate(MPI_COMM_SELF, &u);
+	VecSetSizes(u, PETSC_DECIDE, n);
+	VecSetFromOptions(u);
+	VecDuplicate(x, &v);
+
+	MatMult(PA->A_, x, y);
+	MatMultTranspose(PA->Q1_, y, u);
+	MatMult(PA->Q1_, u, v);
+	VecAXPY(y, -1.0, v);
+
+	VecDestroy(&u);
+	VecDestroy(&v);
+
+	return 0;
+}
 
 int getQ1(Mat *pA, PetscInt M, PetscInt N){
   int i,j;
@@ -123,8 +146,10 @@ int tracemin_cg(Mat A,
 {
   Mat            RHS;                     /* P=QR factorization*/
   Mat            P;                     /* P=QR factorization*/
+	Mat            PA_shell;							// matrix-free operator
   Vec            b,x;                   /* Atut*x = b;*/
   KSP            ksp;                   /* linear solver context */
+	PC             pc;										// preconditioner
   PetscErrorCode ierr;
   PetscInt       i,its;                 /*iteration numbers of KSP*/
   PetscInt      *idxm;
@@ -135,6 +160,10 @@ int tracemin_cg(Mat A,
   Mat Q1;
   MatConvert(BY, MATSEQAIJ, MAT_INITIAL_MATRIX, &Q1);
   getQ1(&Q1, M, N);  //BY stores Q1
+
+	ProjectedMatrix PA(A, Q1);
+	MatCreateShell(PETSC_COMM_WORLD, M, M, PETSC_DETERMINE, PETSC_DETERMINE, &PA, &PA_shell);
+	MatShellSetOperation(PA_shell, MATOP_MULT, (void(*)(void))ProjectedMatrix::Mult);
   
   //ierr = MatMatTransposeMult(BY, BY,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
   ierr = MatMatTransposeMult(Q1, Q1,MAT_INITIAL_MATRIX,  PETSC_DEFAULT ,&P);
@@ -172,9 +201,11 @@ int tracemin_cg(Mat A,
   MatView(RHS, PETSC_VIEWER_STDOUT_SELF);
 
 	KSPCreate(PETSC_COMM_WORLD, &ksp);
+	KSPGetPC(ksp, &pc);
+	PCSetType(pc, PCNONE);
 	KSPSetType(ksp, KSPCG);
 	KSPSetNormType(ksp, KSP_NORM_UNPRECONDITIONED);
-	KSPSetOperators(ksp, A ,P);
+	KSPSetOperators(ksp, PA_shell, A);
 	KSPSetCheckNormIteration(ksp, -1);
 	KSPSetTolerances(ksp,1.0e-06,PETSC_DEFAULT,PETSC_DEFAULT,400);// KSPSetTolerances(ksp,(Sig[i]/SigMx)*(Sig[i]/SigMx),PETSC_DEFAULT,PETSC_DEFAULT,400);
 	KSPSetInitialGuessNonzero(ksp,PETSC_FALSE);
