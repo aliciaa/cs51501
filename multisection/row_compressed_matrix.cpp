@@ -66,11 +66,11 @@ RowCompressedMatrix::RowCompressedMatrix(const char* file_name) {
     exit(-1);
   }
   //qsort(dummy_ia, _ja, _a, 0, _num_nnz);
-  
+  /*
   for (int i = 0; i < NNZ; i++) {
     printf("%d : <%d, %d> = %.5lf\n", i, dummy_ia[i], _ja[i], _a[i]);
   }
-
+  */
   int l = 0;
   int curr_count = 0;
   _ia[0] = 0;
@@ -80,7 +80,7 @@ RowCompressedMatrix::RowCompressedMatrix(const char* file_name) {
     }
     _ia[i+1] = l;
   }
-  dump();
+  //dump();
   delete[] dummy_ia;
 }
 

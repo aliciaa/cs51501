@@ -275,6 +275,15 @@ void multisection(int argc, char* argv[],
     for (int i = 0; i < num_intervals; i++) {
       printf("Number of eigs on interval [%.5f, %.5f] = %d\n", intervals[i], intervals[i+1], num_eigs[i+1]-num_eigs[i]);
     }
+    FILE* fp = fopen("interval_file.txt", "w");
+    fprintf(fp, "%d\n", num_intervals);
+    for (int i = 0; i <= num_intervals; i++) {
+      fprintf(fp, "%.8lf\n", intervals[i]);
+    }
+    for (int i = 0; i < num_intervals; i++) {
+      fprintf(fp, "%d\n", num_eigs[i+1] - num_eigs[i]);
+    }
+    fclose(fp);
   }
   MPI_Finalize();
 }

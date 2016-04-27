@@ -1,0 +1,12 @@
+#define CG
+#define CG
+#define CG
+#define CG
+#define CG
+#define MINRES
+#define CG
+#define MINRES
+#define CG
+#define MINRES
+#define CG
+#define MINRES
