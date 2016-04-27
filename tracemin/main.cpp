@@ -34,6 +34,8 @@ int main(int argc, char *argv[])
 		 * read in matrices A and B
 		 *---------------------------------------------------------------------------*/
 		PetscBool dummy_bool;
+
+		//PetscOptionsGetString(NULL, "-fA", fileA, PETSC_MAX_PATH_LEN, NULL);
 		PetscOptionsGetString(NULL, NULL, "-fA", fileA, PETSC_MAX_PATH_LEN, &dummy_bool);
 		PetscOptionsGetString(NULL, NULL, "-fB", fileB, PETSC_MAX_PATH_LEN, &dummy_bool);
 		PetscOptionsGetString(NULL, NULL, "-fO", fileO, PETSC_MAX_PATH_LEN, &dummy_bool);

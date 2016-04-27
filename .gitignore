@@ -1,0 +1,5 @@
+*.res
+*.o
+*.out
+penmp
+tracemin
