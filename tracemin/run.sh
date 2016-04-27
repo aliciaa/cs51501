@@ -1,3 +1,3 @@
 #!/bin/tcsh
 
-./tracemin -ksp_type cg -fA data/A_1.mtx -fB data/B_1.mtx
+./tracemin -fA ./../testcases/A_tiny.mtx -fB ./../testcases/B_tiny.mtx -fO eigen_cg.res

@@ -10,7 +10,8 @@ int main(int argc, char *argv[])
 	int num_tasks,										// number of tasks in partition
 			task_id;											// task identifier
 	char fileA[PETSC_MAX_PATH_LEN],		// file of matrix A
-			 fileB[PETSC_MAX_PATH_LEN];		// file of matrix B
+             fileB[PETSC_MAX_PATH_LEN],		// file of matrix B
+	     fileO[PETSC_MAX_PATH_LEN];
 	Mat A,														// the matrix A
 			B,														// the matrix B
 			Y;
@@ -32,8 +33,12 @@ int main(int argc, char *argv[])
 		/*---------------------------------------------------------------------------
 		 * read in matrices A and B
 		 *---------------------------------------------------------------------------*/
-		PetscOptionsGetString(NULL, "-fA", fileA, PETSC_MAX_PATH_LEN, NULL);
-		PetscOptionsGetString(NULL, "-fB", fileB, PETSC_MAX_PATH_LEN, NULL);
+		PetscBool dummy_bool;
+		PetscOptionsGetString(NULL, NULL, "-fA", fileA, PETSC_MAX_PATH_LEN, &dummy_bool);
+		PetscOptionsGetString(NULL, NULL, "-fB", fileB, PETSC_MAX_PATH_LEN, &dummy_bool);
+		PetscOptionsGetString(NULL, NULL, "-fO", fileO, PETSC_MAX_PATH_LEN, &dummy_bool);
+
+
 		error = MatRead(fileA, n, A);
 		error = MatRead(fileB, m, B);
 
@@ -47,8 +52,9 @@ int main(int argc, char *argv[])
 //		MatView(A, PETSC_VIEWER_STDOUT_SELF);
 //		MatView(B, PETSC_VIEWER_STDOUT_SELF);
 	}
-	
-	TraceMin1(n, p, A, B, Y, S);
+        //A = A - u *B;
+        MatAXPY(A, 1.0, B, DIFFERENT_NONZERO_PATTERN);
+	TraceMin1(fileO, n, p, A, B, Y, S);
 
 	MatDestroy(&A);
 	MatDestroy(&B);

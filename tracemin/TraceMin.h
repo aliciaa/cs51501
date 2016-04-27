@@ -12,7 +12,8 @@
  * @output Y eigenvectors of the system
  * @output S eigenvalues of the system
  */
-void TraceMin1(const PetscInt n,
+void TraceMin1(const char* fileO,
+               const PetscInt n,
 							 const PetscInt p,
 							 const Mat A,
 							 const Mat B,

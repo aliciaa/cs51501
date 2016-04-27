@@ -3,6 +3,9 @@
 #define SIZM 10
 #define cxDebug 0
 
+#define MINRES
+//#define CG
+
 PetscErrorCode ProjectedMatrix::MultVec(Mat PA_shell,
                                         Vec x,
                                         Vec y)
@@ -81,9 +84,14 @@ PetscErrorCode tracemin_cg(const Mat A,
 	KSPCreate(PETSC_COMM_WORLD, &ksp);
 	KSPGetPC(ksp, &pc);
 	PCSetType(pc, PCNONE);
+#ifdef MINRES
+	KSPSetType(ksp, KSPMINRES);
+#endif
+#ifdef CG
 	KSPSetType(ksp, KSPCG);
-  KSPCGSetType(ksp, KSP_CG_SYMMETRIC);
+        KSPCGSetType(ksp, KSP_CG_SYMMETRIC);
 	KSPSetNormType(ksp, KSP_NORM_UNPRECONDITIONED);
+#endif
 	KSPSetOperators(ksp, PA_shell, A);
 	KSPSetCheckNormIteration(ksp, -1);
 	KSPSetTolerances(ksp, 1e-7, PETSC_DEFAULT, PETSC_DEFAULT, 400);
@@ -91,18 +99,20 @@ PetscErrorCode tracemin_cg(const Mat A,
 	KSPSetFromOptions(ksp);
   KSPSetUp(ksp);
 
+  
+  //MatView(RHS, PETSC_VIEWER_STDOUT_SELF);
   for (PetscInt i = 0; i < N; ++i) {
     MatGetColumnVector(RHS, b, i);
     KSPSolve(ksp, b, x);
-    KSPReasonView(ksp, PETSC_VIEWER_STDOUT_SELF);
+    //KSPReasonView(ksp, PETSC_VIEWER_STDOUT_SELF);
 
     MatMult(PA_shell, x, r);
     VecAXPY(r, -1.0, b);
-    PetscPrintf(PETSC_COMM_SELF, "r:\n");
-    VecView(r, PETSC_VIEWER_STDOUT_SELF);
+    //PetscPrintf(PETSC_COMM_SELF, "r:\n");
+    //VecView(r, PETSC_VIEWER_STDOUT_SELF);
     
     KSPGetIterationNumber(ksp,&its);
-    PetscPrintf(PETSC_COMM_SELF, "CG iter = %d\n", its);
+    //PetscPrintf(PETSC_COMM_SELF, "CG iter = %d\n", its);
     VecGetArray(x, &arr);
     MatSetValues(X, M, idxm, 1, &i, arr, INSERT_VALUES);
     //TODO
@@ -110,12 +120,13 @@ PetscErrorCode tracemin_cg(const Mat A,
     MatAssemblyEnd(X, MAT_FINAL_ASSEMBLY);//MatAssemblyEnd(X,MAT_FLUSH_ASSEMBLY);
     VecRestoreArray(x, &arr);
  
-#if 1
+#if 0
     PetscPrintf(PETSC_COMM_SELF, "CG  Col%d x: \n", i);
     VecView(x, PETSC_VIEWER_STDOUT_SELF);
+
 #endif
   }
-  
+
   PetscFree(idxm);
 	MatDestroy(&PA_shell);
   VecDestroy(&b);
