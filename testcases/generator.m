@@ -1,5 +1,5 @@
 clear;
-n = 10; b = 2;
+n = 30; b = 3;
 A = sparse(n);
 B = sparse(n);
 for i = 1:n
