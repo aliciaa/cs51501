@@ -91,10 +91,15 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 	const PetscInt m = n / 2;						// max number of annihiliations
 	PetscScalar aii, ajj, aij,					// principal submatrix values of A
 							a, t, c, s;							// intermediate values
+  PetscScalar *dataA,                 // array to data of matrix A
+              *dataU;                 // array to data of matrix U
 	PetscInt i, j,											// indices
 					 p,													// counting variables
 					 niter = 0;
 	PetscBool even = PETSC_TRUE;				// even number of rotations
+
+  MatDenseGetArray(A, &dataA);
+  MatDenseGetArray(U, &dataU);
 
 	do {
 		nnz = n * (n - 1) / 2;						// set the total number of nonzeros
@@ -106,8 +111,10 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 			 * initialize the matrix U to be the identity
 			 *---------------------------------------------------------------------------*/
 			MatZeroEntries(U);
+      
 			for (PetscInt r = 0; r < n; ++r) {
-				MatSetValue(U, r, r, 1.0, INSERT_VALUES);
+        dataU[r * (n + 1)] = 1.0;
+//				MatSetValue(U, r, r, 1.0, INSERT_VALUES);
 			}
 
 //#pragma omp parallel for private(p, i, j, aii, ajj, aij, a, t, c, s) reduction(-:nnz)
@@ -118,9 +125,14 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 					/*---------------------------------------------------------------------------
 					 * get the values from A
 					 *---------------------------------------------------------------------------*/
+          aii = dataA[i * (n + 1)];
+          aij = dataA[j * n + i];
+          ajj = dataA[j * (n + 1)];
+#if 0
 					MatGetValues(A, 1, &i, 1, &i, &aii);
 					MatGetValues(A, 1, &j, 1, &j, &ajj);
 					MatGetValues(A, 1, &i, 1, &j, &aij);
+#endif
 
 					if (fabs(aij) < tol * nrm) {
 						/*---------------------------------------------------------------------------
@@ -139,10 +151,16 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 						/*---------------------------------------------------------------------------
 						 * set the values of matrix U
 						 *---------------------------------------------------------------------------*/
+            dataU[i * (n + 1)] = c;
+            dataU[j * n + i] = -1.0 * s;
+            dataU[i * n + j] = s;
+            dataU[j * (n + 1)] = c;
+#if 0
 						MatSetValue(U, i, i, c, INSERT_VALUES);
 						MatSetValue(U, i, j, -1.0 * s, INSERT_VALUES);
 						MatSetValue(U, j, i, s, INSERT_VALUES);
 						MatSetValue(U, j, j, c, INSERT_VALUES);
+#endif
 					}
 				}
 			}
@@ -173,6 +191,10 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 		}
 		++niter;
 	} while (nnz > 0);
+	//PetscPrintf(PETSC_COMM_SELF, "Jacobi2 total iter = %d\n", niter);
+
+  MatDenseRestoreArray(A, &dataA);
+  MatDenseRestoreArray(U, &dataU);
 
 	//MatView(A, PETSC_VIEWER_STDOUT_SELF);
 
@@ -186,7 +208,7 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 	 *---------------------------------------------------------------------------*/
 	if (even == PETSC_FALSE) {
 		MatCopy(W, V, SAME_NONZERO_PATTERN);
-	};
+	}
 
 	/*---------------------------------------------------------------------------
 	 * deallocate U, B and D

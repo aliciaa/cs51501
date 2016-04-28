@@ -15,6 +15,11 @@
  * @output Y eigenvectors of the system
  * @output S eigenvalues of the system
  */
+
+#define CONVTEST 1
+//#define CONVTEST 0
+
+
 void TraceMin1(const char* fileO,
                const PetscInt n,
 							 const PetscInt p,
@@ -28,8 +33,7 @@ void TraceMin1(const char* fileO,
 	 *---------------------------------------------------------------------------*/
 	double t_start,
 				 t_end;
-	double cg_start, cg_end, cg_total = 0.0;
-	double j_start, j_end, j_total = 0.0;
+	double cg_start, cg_end, cg_total;
 	PetscInt s = 2 * p,								// dimension of the subspace
 					 c = p,										// number of converged columns
 					 w;												// width of the matrix orders
@@ -55,6 +59,11 @@ void TraceMin1(const char* fileO,
 			R;
 	Vec MS;														// the magnitude of S
 	IS col;														// index set for column
+
+
+#if CONVTEST ==1
+  s+=1; //added one columm for lambd_p+1
+#endif
 
 	/*---------------------------------------------------------------------------
 	 * create the matries V, BV, M, X, Z, BY, AZ, AY, Y, R
@@ -116,7 +125,8 @@ void TraceMin1(const char* fileO,
 
 	//while (true) {
   PetscInt k;
-  for (k = 0; k < MAX_NUM_ITER; ++k) {
+  //for (k = 0; k < 1;/* MAX_NUM_ITER*/ ++k) {
+  for (k = 0; k <MAX_NUM_ITER; ++k) {
 		/*---------------------------------------------------------------------------
 		 * M = V^T B V
 		 *---------------------------------------------------------------------------*/
@@ -126,10 +136,7 @@ void TraceMin1(const char* fileO,
 		/*---------------------------------------------------------------------------
 		 * Perform eigen decomposition
 		 *---------------------------------------------------------------------------*/
-    j_start = omp_get_wtime();
 		JacobiEigenDecomposition(orders, s, w, M, X, S);
-    j_end = omp_get_wtime();
-    j_total += j_end - j_start;
 
 		/*---------------------------------------------------------------------------
 		 * M = S^{-1/2}
@@ -159,10 +166,7 @@ void TraceMin1(const char* fileO,
 		/*---------------------------------------------------------------------------
 		 * Perform eigen decomposition
 		 *---------------------------------------------------------------------------*/
-    j_start = omp_get_wtime();
 		JacobiEigenDecomposition(orders, s, w, M, X, S);
-    j_end = omp_get_wtime();
-    j_total += j_end - j_start;
 		
 		/*---------------------------------------------------------------------------
 		 * Sort the eigenvalues and get the permuation
@@ -247,7 +251,7 @@ void TraceMin1(const char* fileO,
 		 * CG / MINRES
 		 *---------------------------------------------------------------------------*/
     cg_start = omp_get_wtime();
-    tracemin_cg(A, BY, AY, V, n, s);
+    tracemin_cg(A, BY, AY, V, n, s, S);
     cg_end = omp_get_wtime();
     cg_total += cg_end - cg_start;
 /*
@@ -274,7 +278,6 @@ void TraceMin1(const char* fileO,
         PetscViewerASCIIOpen(PETSC_COMM_WORLD, fileO, &viewer);
 	PetscPrintf(PETSC_COMM_SELF, "Total iter = %d\n", k);
 	PetscPrintf(PETSC_COMM_SELF, "Total time = %.6lf\n", t_end - t_start);
-	PetscPrintf(PETSC_COMM_SELF, "Jacobi time = %.6lf\n", j_total);
 	PetscPrintf(PETSC_COMM_SELF, "Linear time = %.6lf\n", cg_total);
         MatView(Y, viewer);
 	VecView(S, viewer);

@@ -64,10 +64,9 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 	 * declare an orthogonal matrix U for intermediate step and a vector D
 	 * create the matries U, V and the vector D
 	 *---------------------------------------------------------------------------*/
-	Mat U, W, B;
+	Mat U, B;
 	Vec D;
 	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, n, n, NULL, &U);
-	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, n, n, NULL, &W);
 	MatCreateDense(MPI_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, n, n, NULL, &B);
 	VecCreate(MPI_COMM_SELF, &D);
 	VecSetSizes(D, PETSC_DECIDE, n);
@@ -87,18 +86,26 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 	 *---------------------------------------------------------------------------*/
 	PetscInt nnz;												// number of nonzero off-diagonals
 	const PetscReal tol = 1e-12;				// tolerance
-	PetscReal nrm;											// norm of A
 	const PetscInt m = n / 2;						// max number of annihiliations
 	PetscScalar aii, ajj, aij,					// principal submatrix values of A
-							a, t, c, s;							// intermediate values
+							a, b, t, c, s;					// intermediate values
+  PetscScalar *dataA,                 // array to data of matrix A
+              *dataB,                 // array to data of matrix B
+              *dataU;                 // array to data of matrix U
+  PetscReal *norms;                   // norms
 	PetscInt i, j,											// indices
-					 p,													// counting variables
+					 p,	q,											// counting variables
 					 niter = 0;
 	PetscBool even = PETSC_TRUE;				// even number of rotations
 
+  PetscMalloc1(n, &norms);
+
+  MatDenseGetArray(A, &dataA);
+  MatDenseGetArray(B, &dataB);
+  MatDenseGetArray(U, &dataU);
+
 	do {
 		nnz = n * (n - 1) / 2;						// set the total number of nonzeros
-		MatNorm(A, NORM_FROBENIUS, &nrm);
 
 		for (PetscInt k = 0; k < n; ++k) {
 			const PetscInt* currOrders = orders + k * w;
@@ -106,23 +113,44 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 			 * initialize the matrix U to be the identity
 			 *---------------------------------------------------------------------------*/
 			MatZeroEntries(U);
+      
 			for (PetscInt r = 0; r < n; ++r) {
-				MatSetValue(U, r, r, 1.0, INSERT_VALUES);
+        dataU[r * (n + 1)] = 1.0;
 			}
 
-//#pragma omp parallel for private(p, i, j, aii, ajj, aij, a, t, c, s) reduction(-:nnz)
+//#pragma omp parallel for private(p, i, j, aii, ajj, aij, a, b, t, c, s) reduction(-:nnz)
 			for (p = 0; p < m; ++p) {
+        int thread_id = omp_get_thread_num();
 				i = currOrders[2*p];
 				j = currOrders[2*p+1];
 				if (i != -1) {
 					/*---------------------------------------------------------------------------
-					 * get the values from A
+					 * compute the norms and dot product
 					 *---------------------------------------------------------------------------*/
-					MatGetValues(A, 1, &i, 1, &i, &aii);
-					MatGetValues(A, 1, &j, 1, &j, &ajj);
-					MatGetValues(A, 1, &i, 1, &j, &aij);
+          aii = 0.0;
+          ajj = 0.0;
+          aij = 0.0;
+          if (even == PETSC_TRUE) {
+            for (q = 0; q < n; ++q) {
+              a = dataA[i * n + q];
+              b = dataA[j * n + q];
+              aii += a * a;
+              ajj += b * b;
+              aij += a * b;
+            }
+          } else {
+            for (q = 0; q < n; ++q) {
+              a = dataB[i * n + q];
+              b = dataB[j * n + q];
+              aii += a * a;
+              ajj += b * b;
+              aij += a * b;
+            }
+          }
+          aii = sqrt(aii);
+          ajj = sqrt(ajj);
 
-					if (fabs(aij) < tol * nrm) {
+					if (fabs(aij) < tol * aii * ajj) {
 						/*---------------------------------------------------------------------------
 						 * decrement the off-diagonal nnz
 						 *---------------------------------------------------------------------------*/
@@ -131,18 +159,30 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 						/*---------------------------------------------------------------------------
 						 * compute a, t, c, s
 						 *---------------------------------------------------------------------------*/
-						a = (aii - ajj) / (2 * aij);
-						t = (a >= 0 ? 1.0 : -1.0) / (fabs(a) + sqrt(a * a + 1));
-						c = 1.0 / sqrt(t * t + 1);
-						s = c * t;
+						a = 2 * aij;
+            b = aii * aii - ajj * ajj;
+						t = sqrt(a * a + b * b);
+            if (b > 0) {
+  						c = sqrt((b + t) / (2 * t));
+	  					s = a / (2 * t * c);
+            } else {
+  						s = sqrt((t - b) / (2 * t));
+	  					c = a / (2 * t * s);
+            }
 
 						/*---------------------------------------------------------------------------
 						 * set the values of matrix U
 						 *---------------------------------------------------------------------------*/
+            dataU[i * (n + 1)] = c;
+            dataU[j * n + i] = -1.0 * s;
+            dataU[i * n + j] = s;
+            dataU[j * (n + 1)] = c;
+#if 0
 						MatSetValue(U, i, i, c, INSERT_VALUES);
 						MatSetValue(U, i, j, -1.0 * s, INSERT_VALUES);
 						MatSetValue(U, j, i, s, INSERT_VALUES);
 						MatSetValue(U, j, j, c, INSERT_VALUES);
+#endif
 					}
 				}
 			}
@@ -153,46 +193,50 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 			MatAssemblyBegin(U, MAT_FINAL_ASSEMBLY);
 			MatAssemblyEnd(U, MAT_FINAL_ASSEMBLY);
 
-			//MatView(U, PETSC_VIEWER_STDOUT_SELF);
-
 			/*---------------------------------------------------------------------------
 			 * apply U: A = A * U
 			 *---------------------------------------------------------------------------*/
-			MatMatMult(A, U, MAT_REUSE_MATRIX, PETSC_DEFAULT, &B);
-			MatTransposeMatMult(U, B, MAT_REUSE_MATRIX, PETSC_DEFAULT, &A);
 			if (even == PETSC_TRUE) {
-				MatMatMult(V, U, MAT_REUSE_MATRIX, PETSC_DEFAULT, &W);
+				MatMatMult(A, U, MAT_REUSE_MATRIX, PETSC_DEFAULT, &B);
 				even = PETSC_FALSE;
 			} else {
-				MatMatMult(W, U, MAT_REUSE_MATRIX, PETSC_DEFAULT, &V);
+				MatMatMult(B, U, MAT_REUSE_MATRIX, PETSC_DEFAULT, &A);
 				even = PETSC_TRUE;
 			}
-			//MatCopy(W, V, SAME_NONZERO_PATTERN);
-
-			//MatView(A, PETSC_VIEWER_STDOUT_SELF);
 		}
 		++niter;
 	} while (nnz > 0);
+	//PetscPrintf(PETSC_COMM_SELF, "Jacobi1 total iter = %d\n", niter);
 
-	//MatView(A, PETSC_VIEWER_STDOUT_SELF);
+  MatDenseRestoreArray(A, &dataA);
+  MatDenseRestoreArray(U, &dataU);
 
 	/*---------------------------------------------------------------------------
-	 * only keep the diagonal of A
-	 *---------------------------------------------------------------------------*/
-	MatGetDiagonal(A, S);
-	
-	/*---------------------------------------------------------------------------
-	 * copy back from W to V if necessary
+	 * copy back from B to A if necessary
 	 *---------------------------------------------------------------------------*/
 	if (even == PETSC_FALSE) {
-		MatCopy(W, V, SAME_NONZERO_PATTERN);
-	};
+		MatCopy(B, A, SAME_NONZERO_PATTERN);
+	}
 
+	/*---------------------------------------------------------------------------
+	 * compute the eigenvalues and eigenvectors
+	 *---------------------------------------------------------------------------*/
+  MatGetColumnNorms(A, NORM_2, norms);
+  for (PetscInt i = 0; i < n; ++i) {
+    VecSetValue(S, i, norms[i], INSERT_VALUES);
+  }
+  VecAssemblyBegin(S);
+  VecAssemblyEnd(S);
+  VecCopy(S, D);
+  VecReciprocal(D);
+  MatZeroEntries(U);
+  MatDiagonalSet(U, D, INSERT_VALUES);
+  MatMatMult(A, U, MAT_REUSE_MATRIX, PETSC_DEFAULT, &V);
+	
 	/*---------------------------------------------------------------------------
 	 * deallocate U, B and D
 	 *---------------------------------------------------------------------------*/
 	MatDestroy(&U);
-	MatDestroy(&W);
 	MatDestroy(&B);
 	VecDestroy(&D);
 }
