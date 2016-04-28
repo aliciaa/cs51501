@@ -110,7 +110,7 @@ void JacobiEigenDecomposition(const PetscInt * orders,
 				MatSetValue(U, r, r, 1.0, INSERT_VALUES);
 			}
 
-//#pragma omp parallel for private(p, i, j, aii, ajj, aij, a, t, c, s)
+//#pragma omp parallel for private(p, i, j, aii, ajj, aij, a, t, c, s) reduction(-:nnz)
 			for (p = 0; p < m; ++p) {
 				i = currOrders[2*p];
 				j = currOrders[2*p+1];
