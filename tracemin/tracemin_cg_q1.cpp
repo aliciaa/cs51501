@@ -1,6 +1,6 @@
 #include "tracemin_cg_q1.h"
 #include <petscksp.h>
-#include "omp.h"
+#include <omp.h>
 #define cxDebug 0
 
 //#define MINRES
