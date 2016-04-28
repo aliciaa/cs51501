@@ -15,6 +15,11 @@
  * @output Y eigenvectors of the system
  * @output S eigenvalues of the system
  */
+
+//#define CONVTEST 1
+#define CONVTEST 0
+
+
 void TraceMin1(const char* fileO,
                const PetscInt n,
 							 const PetscInt p,
@@ -54,6 +59,11 @@ void TraceMin1(const char* fileO,
 			R;
 	Vec MS;														// the magnitude of S
 	IS col;														// index set for column
+
+
+#if CONVTEST ==1
+  s+=1; //added one columm for lambd_p+1
+#endif
 
 	/*---------------------------------------------------------------------------
 	 * create the matries V, BV, M, X, Z, BY, AZ, AY, Y, R
@@ -240,7 +250,7 @@ void TraceMin1(const char* fileO,
 		 * CG / MINRES
 		 *---------------------------------------------------------------------------*/
     cg_start = omp_get_wtime();
-    tracemin_cg(A, BY, AY, V, n, s);
+    tracemin_cg(A, BY, AY, V, n, s, S);
     cg_end = omp_get_wtime();
     cg_total += cg_end - cg_start;
 /*

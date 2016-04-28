@@ -21,6 +21,7 @@ PetscErrorCode tracemin_cg(const Mat A,
                            const Mat RHS,
                            Mat X,
                            PetscInt M,
-                           PetscInt N);
+                           PetscInt N,
+                           Vec S);
 
 #endif // TRACE_MIN_CG

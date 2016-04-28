@@ -34,11 +34,14 @@ int main(int argc, char *argv[])
 		 * read in matrices A and B
 		 *---------------------------------------------------------------------------*/
 		PetscBool dummy_bool;
-
-		//PetscOptionsGetString(NULL, "-fA", fileA, PETSC_MAX_PATH_LEN, NULL);
-		PetscOptionsGetString(NULL, NULL, "-fA", fileA, PETSC_MAX_PATH_LEN, &dummy_bool);
-		PetscOptionsGetString(NULL, NULL, "-fB", fileB, PETSC_MAX_PATH_LEN, &dummy_bool);
-		PetscOptionsGetString(NULL, NULL, "-fO", fileO, PETSC_MAX_PATH_LEN, &dummy_bool);
+    //Petsc 3.6.3
+		PetscOptionsGetString(NULL, "-fA", fileA, PETSC_MAX_PATH_LEN, NULL);
+		PetscOptionsGetString(NULL, "-fB", fileB, PETSC_MAX_PATH_LEN, NULL);
+		PetscOptionsGetString(NULL, "-fO", fileO, PETSC_MAX_PATH_LEN, NULL);
+		//Petsc 3.6.4
+    //PetscOptionsGetString(NULL, NULL, "-fA", fileA, PETSC_MAX_PATH_LEN, &dummy_bool);
+		//PetscOptionsGetString(NULL, NULL, "-fB", fileB, PETSC_MAX_PATH_LEN, &dummy_bool);
+		//PetscOptionsGetString(NULL, NULL, "-fO", fileO, PETSC_MAX_PATH_LEN, &dummy_bool);
 
 
 		error = MatRead(fileA, n, A);

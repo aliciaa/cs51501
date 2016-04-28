@@ -1,4 +1,4 @@
-CPPFLAGS = -openmp
+CPPFLAGS = -fopenmp
 
 all: tracemin
 
