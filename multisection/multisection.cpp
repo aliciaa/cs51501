@@ -174,6 +174,7 @@ void get_multisection(const RowCompressedMatrix& A,
     eig_list.insert(splitters[i], num_eigs[i]);
   }
   double total_eigs = num_eigs[nproc * SPLIT_PER_PROC - 1] - num_eigs[0];
+  int last_num = num_eigs[nproc*SPLIT_PER_PROC - 1];
   double average_eigs = total_eigs / num_intervals;
   double v_lower = 0;
   double v_upper = 0;;
@@ -192,6 +193,16 @@ void get_multisection(const RowCompressedMatrix& A,
     int prev_num, curr_num;
     eig_list.reset_iterator();
     bool has_next = eig_list.get_next(prev_pos, prev_num);
+    has_next = eig_list.get_next(curr_pos, curr_num);
+    while(has_next && curr_num == prev_num) {
+      prev_pos = curr_pos;
+      prev_num = curr_num;
+      has_next = eig_list.get_next(curr_pos, curr_num);
+    }
+    intervals[0] = prev_pos;
+    curr_eigs = curr_num - prev_num;
+    prev_pos = curr_pos;
+    prev_num = curr_num;
     int l = 1;
     while (l < num_intervals && has_next) {
       has_next = eig_list.get_next(curr_pos, curr_num);
@@ -214,6 +225,10 @@ void get_multisection(const RowCompressedMatrix& A,
       prev_pos = curr_pos;
       prev_num = curr_num;
     }
+    while (has_next && curr_num < last_num) {
+      has_next = eig_list.get_next(curr_pos, curr_num);
+    }
+    intervals[l] = curr_pos;
     std::cout << "Total rounds = " << rounds << std::endl;
     std::cout << "Total LDL = " << rounds * SPLIT_PER_PROC << std::endl;
   }
@@ -242,7 +257,7 @@ void multisection(int argc, char* argv[],
   //double upper_bound = 200;
   //int num_intervals = 4;
   double* intervals = new double[num_intervals+1];
-  intervals[0] = lower_bound;
+  //intervals[0] = lower_bound;
 
   struct timeval tv1, tv2;
   double time_elapsed = 0;
@@ -259,7 +274,7 @@ void multisection(int argc, char* argv[],
   }
 
 
-  intervals[num_intervals] = upper_bound;
+  //intervals[num_intervals] = upper_bound;
   if (rank == MPI_MASTER) {
     for (int i = 0; i <= num_intervals; i++) {
       std::cout << "intervals["<<i<<"] = " << intervals[i] << std::endl;
@@ -271,11 +286,11 @@ void multisection(int argc, char* argv[],
       C.count_eigen(pos_eigs, neg_eigs);
       num_eigs[i] = neg_eigs;
     }
-    printf("Total egis on interval [%.5f, %.5f] = %d \n", lower_bound, upper_bound, num_eigs[num_intervals] - num_eigs[0]);
+    printf("Total egis on interval [%.5f, %.5f] = %d \n", intervals[0], intervals[num_intervals], num_eigs[num_intervals] - num_eigs[0]);
     for (int i = 0; i < num_intervals; i++) {
       printf("Number of eigs on interval [%.5f, %.5f] = %d\n", intervals[i], intervals[i+1], num_eigs[i+1]-num_eigs[i]);
     }
-    FILE* fp = fopen("interval_file.txt", "w");
+    FILE* fp = fopen("intervals.txt", "w");
     fprintf(fp, "%d\n", num_intervals);
     for (int i = 0; i <= num_intervals; i++) {
       fprintf(fp, "%.8lf\n", intervals[i]);

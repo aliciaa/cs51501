@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &num_tasks);
 	PETSC_COMM_WORLD = MPI_COMM_SELF;
 	PetscInitialize(&argc, &argv, (char*) 0, help);
-        //PetscPrintf(PETSC_COMM_SELF, "I'm task %d of %d\n", task_id, num_tasks);
+        PetscPrintf(PETSC_COMM_SELF, "I'm task %d of %d\n", task_id, num_tasks);
         
         PetscInt m;
 
@@ -49,9 +49,10 @@ int main(int argc, char *argv[])
 	suffix[1] = 48+task_id;
 	strcat(fileO, suffix);
 	FILE* fp;
-	fp = fopen("./../intervals.txt", "r");
+	fp = fopen("./intervals.txt", "r");
 	int N;
 	fscanf(fp, "%d\n", &N);
+	PetscPrintf(PETSC_COMM_SELF, "N = %d\n", N);
 	assert(N == num_tasks);
 	double* intervals = new double[N+1];
 	int* num_eigs = new int[N];

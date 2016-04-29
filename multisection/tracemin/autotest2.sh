@@ -1,11 +1,11 @@
-MATRIX_A=${HOME}/cs51501/proj/testcases/A_1000.mtx
-#MATRIX_A=${HOME}/cs51501/proj/testcases/large/bloweybq.mtx
-MATRIX_B=${HOME}/cs51501/proj/testcases/B_1000.mtx
-NPROC=1
+#MATRIX_A=${HOME}/cs51501/proj/testcases/A_tiny.mtx
+MATRIX_A=${HOME}/cs51501/proj/testcases/large/bloweybq.mtx
+MATRIX_B=${HOME}/cs51501/proj/testcases/B_tiny03.mtx
+NPROC=2
 LOWER_BOUND=0
-UPPER_BOUND=100
+UPPER_BOUND=400000
 
-#mpirun -np ${NPROC} -machinefile hostfile.txt ./../multisection ${MATRIX_A} ${MATRIX_B} ${LOWER_BOUND} ${UPPER_BOUND} ${NPROC}
+mpirun -np ${NPROC} -machinefile hostfile.txt ./../multisection ${MATRIX_A} ${MATRIX_B} ${LOWER_BOUND} ${UPPER_BOUND} ${NPROC}
 
 rm linear_solver.h
 echo "#define CG" >> linear_solver.h
