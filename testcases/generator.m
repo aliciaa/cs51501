@@ -1,5 +1,5 @@
 clear;
-n = 1000; b = 4;
+n = 10000; b = 4;
 output_A='A_1000.mtx';
 output_B='B_1000.mtx';
 %output_C='C_1000.mtx';
