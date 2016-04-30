@@ -6,9 +6,10 @@
 #include "linear_solver.h"
 #include <omp.h>
 
-#ifdef USE_INTEL_MKL
+//#ifdef USE_INTEL_MKL
 #include "mkl.h"
-#endif
+//#endif
+
 
 /*
  A = [2 1 0 0 0
@@ -198,7 +199,7 @@ for (LINEAR_INT l = 0; l < r; l++) {
   //std::cout << "beta_1 = " << beta_1 << std::endl;
   vec_scale(n, Vk, 1.0 / beta_1);
   LINEAR_INT k = 1;
-
+  //std::cout << "res_norm = " << res_norm << std::endl;
   // 1 more arnoldi to get beta_kp1
   while (k < LINEAR_SOLVER_MAX_ITER && 
   //while (k < 5 &&
@@ -313,7 +314,7 @@ for (LINEAR_INT l = 0; l < r; l++) {
     //prLINEAR_INTf("Iter[%d] res = %.8lf\n", k, res_norm);
     if (res_norm < LINEAR_SOLVER_ABS_TOL ||
         res_norm < LINEAR_SOLVER_REL_TOL * beta_1) {
-      printf("RHS[%d] Converged at iter %d, residual = %.6lf\n", l, k, res_norm);
+      //printf("RHS[%d] Converged at iter %d, residual = %.6lf\n", l, k, res_norm);
     }
     k++;
   } // while
@@ -321,6 +322,19 @@ for (LINEAR_INT l = 0; l < r; l++) {
     sol[l*n+i] = x[i];
   }
 } // for l=1:s
+  free(t1);
+  free(t2);
+  free(Vk);
+  free(Tk);
+  free(Lkd);
+  free(Lk);
+  free(ci);
+  free(si);
+  free(g);
+  free(yk);
+  free(mk);
+  free(x);
+  free(res);
 }
 
 /*

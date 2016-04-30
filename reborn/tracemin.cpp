@@ -7,8 +7,8 @@
 #include <omp.h>
 #include <cstdio>
 
-#define EIGEN_CONVERGENCE_TOL 1.e-7
-#define MAX_NUM_ITER 1000
+#define EIGEN_CONVERGENCE_TOL 1.e-5
+#define MAX_NUM_ITER 10000
 
 static const char NTRANSA = 'N',
                   TRANSA = 'T',
@@ -133,7 +133,8 @@ void TraceMin1(const MKL_INT n,
 		 * AZ = A * Z 
 		 * M = Z^T * AZ
 		 *---------------------------------------------------------------------------*/
-    vdInvSqrt(n, S, MS);
+    //vdInvSqrt(n, S, MS);
+    vdInvSqrt(s, S, MS);
     for (int j = 0; j < s; ++j) {
       cblas_dscal(s, MS[j], M + j*s, 1);
     }
@@ -198,9 +199,12 @@ void TraceMin1(const MKL_INT n,
     }
 		c = 0;
 		for (int j = 0; j < p; ++j) {
-			if (norms[j] <= EIGEN_CONVERGENCE_TOL * MS[j]) ++c;
+			if (norms[j] <= EIGEN_CONVERGENCE_TOL * MS[j] ||
+			    norms[j] <= EIGEN_CONVERGENCE_TOL ||
+			    MS[j] <= EIGEN_CONVERGENCE_TOL) ++c;
+                  //printf("norms[%d]=%.10lf, ev[%d]=%.10lf\n", j, norms[j], j, MS[j]);
 		}
-		if (k % 20 == 0) {
+		if (k % 100 == 0) {
 		  printf("Iter[%d] : Number of converged columns = %d\n", k, c);
       for (int j = 0; j < p; ++j) {
         printf("norms[%d]=%.10lf, ev[%d]=%.10lf\n", j, norms[j], j, MS[j]);
@@ -220,12 +224,13 @@ void TraceMin1(const MKL_INT n,
     cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, s, s, n, 1.0, BY, n, AY, n, 0.0, U, s);
     cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, n, s, s, 1.0, BY, n, U, s, 0.0, W, n);
     cblas_daxpy(n * s, -1.0, W, 1, AY, 1);
-
+/*
     if (k == 20) {
       ViewDense("Q1", n, s, BY);
       ViewDense("RHS", n, s, AY);
       return;
     }
+*/
 		/*---------------------------------------------------------------------------
 		 * CG / MINRES
 		 *---------------------------------------------------------------------------*/
@@ -246,6 +251,9 @@ void TraceMin1(const MKL_INT n,
 	printf("Total time = %.6lf\n", t_end - t_start);
 	printf("Jacobi time = %.6lf (average = %.6lf)\n", j_total, j_total / (2 * k));
 	printf("Linear time = %.6lf\n", cg_total);
+	for (int j = 0; j < p; j++) {
+	  printf("ev[%d]=%.8lf\n", j, S[j]);
+	}
 #if 0
 	PetscPrintf(PETSC_COMM_SELF, "AY:\n");
 	double*View(AY, PETSC_VIEWER_STDOUT_SELF);
