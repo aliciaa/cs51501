@@ -4,7 +4,7 @@
 #define LINEAR_SOLVER_MAX_ITER 400
 #define LINEAR_SOLVER_ABS_TOL 1e-9
 #define LINEAR_SOLVER_REL_TOL 1e-5
-//#define USE_INTEL_MKL
+#define USE_INTEL_MKL
 
 //#ifdef USE_INTEL_MKL
 #include "mkl_types.h"
