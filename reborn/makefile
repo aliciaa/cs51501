@@ -32,7 +32,10 @@ all: $(EXE)
 tracemin_deflation: main.o TraceMin_Deflation.o Jacobi1.o QRFactorization.o matio.o mmio.o tracemin_cg_q1.o
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
-tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi1.o linear_solver_mres.o
+#tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi1.o linear_solver_mres.o
+#	$(COMPILE) $^ $(LDFLAGS) -o $@
+
+tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi1.o linear_solver_cg.o
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
 clean:
