@@ -54,6 +54,9 @@ void linear_solver(
 
 
   delete[] RHSCOPY;
+  delete[] RHSwrt;
+  delete[] WKSPACE1;
+  delete[] WKSPACE2;
   return;
 }
 
