@@ -37,15 +37,11 @@ void linear_solver(
                    MKL_INT n,
                    MKL_INT s) {
   
-  printf("wocao/n");
-  fflush(stdout);
   int its;
-return;
   double  *RHSwrt = new double [n*s];   //workspace of p in cg
   double  *RHSCOPY = new double [n*s];   //workspace of p in cg
   double  *WKSPACE1 = new double [n*s];   //workspace of Ap in cg      each col need size== p
   double  *WKSPACE2 = new double [n*s];    //workspace of I-QQ'Ax in cg  each col need size== sizex	  
-return;
 #pragma omp parallel for
   for(int i=0; i<n*s; i++){
     RHSwrt[i]=RHSCOPY[i] = RHS[i];
