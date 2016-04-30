@@ -17,7 +17,7 @@
 #include <cstdio>
 #include "mkl.h"
 
-#define CG_MAX_ITER 1000
+#define CG_MAX_ITER 40
 
 void imqqax  (const MKL_INT *,const MKL_INT *, const double *, const double *, const double *, double*, double *, int, int);
 void cg_core (const MKL_INT *,const MKL_INT *, const double *, const double *, double *, double*, double*, double*, double*, MKL_INT, MKL_INT, int&	);
