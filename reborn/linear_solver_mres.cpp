@@ -1,19 +1,13 @@
 #include <cassert>
 #include <iostream>
 #include <cstdlib>
+#include <cstdio>
 #include <cmath>
-
 #include "linear_solver.h"
-
 #include <omp.h>
-
-#define USE_INTEL_MKL
 
 #ifdef USE_INTEL_MKL
 #include "mkl.h"
-typedef MKL_INT LINEAR_INT;
-#else
-typedef int LINEAR_INT;
 #endif
 
 /*
@@ -29,7 +23,7 @@ typedef int LINEAR_INT;
 
 
 
-void dump_mat(LINEAR_INT m, LINEAR_INT n, double* mat, bool col_major, const char* name) {
+void dump_mat(LINEAR_INT m, LINEAR_INT n, const double* mat, bool col_major, const char* name) {
  printf("\nDumping %s : \n", name);
  for (LINEAR_INT i = 0; i < m; i++) {
    printf("[ ");
@@ -46,8 +40,8 @@ void dump_mat(LINEAR_INT m, LINEAR_INT n, double* mat, bool col_major, const cha
 
 void vec_daxpy(LINEAR_INT n,
                double* y,
-	       double alpha,
-	       double* x) {
+               double alpha,
+               const double* x) {
 #ifdef USE_INTEL_MKL
 cblas_daxpy(n, alpha, x, 1, y, 1);
 #else
@@ -62,15 +56,15 @@ cblas_daxpy(n, alpha, x, 1, y, 1);
 }
 
 void csr_vec_mult(LINEAR_INT n,
-                  LINEAR_INT* A_ia,
-		  LINEAR_INT* A_ja,
-		  double* A_values,
-		  LINEAR_INT r,
-		  double* Q1,
-		  double* v,
-		  double* Av,
-		  double* t1,
-		  double* t2) {
+                  const LINEAR_INT* A_ia,
+                  const LINEAR_INT* A_ja,
+                  const double* A_values,
+                  LINEAR_INT r,
+                  const double* Q1,
+                  double* v,
+                  double* Av,
+                  double* t1,
+                  double* t2) {
 
 #ifdef USE_INTEL_MKL
   // The interface does NOT match with the manual!!!
@@ -112,8 +106,8 @@ void csr_vec_mult(LINEAR_INT n,
 }
 
 double dot_prod(LINEAR_INT n,
-                double* a,
-		double* b) {
+    const double* a,
+    const double* b) {
   double s = 0;
 #ifdef USE_INTEL_MKL
   s = cblas_ddot(n, a, 1, b, 1);
@@ -142,16 +136,16 @@ cblas_dscal(n, alpha, x, 1);
 #endif
 }
 void arnoldi_process(LINEAR_INT n,
-                     LINEAR_INT* A_ia,
-		     LINEAR_INT* A_ja,
-		     double* A_values,
-		     LINEAR_INT r,
-                     double* Q1,
-		     LINEAR_INT k,
-		     double* Vk,
-		     double* Tk,
-		     double* t1,
-		     double* t2) {
+                     const LINEAR_INT* A_ia,
+                     const LINEAR_INT* A_ja,
+                     const double* A_values,
+                     LINEAR_INT r,
+                     const double* Q1,
+                     LINEAR_INT k,
+                     double* Vk,
+                     double* Tk,
+                     double* t1,
+                     double* t2) {
   csr_vec_mult(n, A_ia, A_ja, A_values, r, Q1, &(Vk[(k-1)*n]), &(Vk[k*n]), t1, t2);
   //dump_mat(n, 5, Vk, true, "Vk-1:"); // col major
   double alpha_k = dot_prod(n, &(Vk[(k-1)*n]), &(Vk[k*n])); 
@@ -170,14 +164,14 @@ void arnoldi_process(LINEAR_INT n,
   vec_scale(n, &(Vk[k*n]), 1.0 / beta_kp1);
 }
 
-void linear_solver(LINEAR_INT* A_ia,
-                   LINEAR_INT* A_ja,
-		   double* A_values, // CSR format of full matri A
-                   double* Q1,          // n * s double, column major
-                   double* rhs,         // n * s double, column major
-		   double* sol,    // n * s double, column major
-		   LINEAR_INT n,
-		   LINEAR_INT r) {
+void linear_solver(const LINEAR_INT* A_ia,
+                   const LINEAR_INT* A_ja,
+                   const double* A_values, // CSR format of full matri A
+                   const double* Q1,          // n * s double, column major
+                   const double* rhs,         // n * s double, column major
+                   double* sol,    // n * s double, column major
+                   LINEAR_INT n,
+                   LINEAR_INT r) {
   // [-2, -1, 0, 1, 2]; 
   double* t1 = (double*)malloc(sizeof(double) * r);
   double* t2 = (double*)malloc(sizeof(double) * n);
