@@ -7,6 +7,15 @@
 
 #include <omp.h>
 
+#define USE_INTEL_MKL
+
+#ifdef USE_INTEL_MKL
+#include "mkl.h"
+typedef MKL_INT LINEAR_INT;
+#else
+typedef int LINEAR_INT;
+#endif
+
 /*
  A = [2 1 0 0 0
       1 2 1 0 0 
@@ -18,13 +27,13 @@
  A_values = {2 1 1 2 1 1 2 1 1 2 1 1 2 1 1 2 }
 */
 
-typedef int LINEAR_INT;
 
-void dump_mat(int m, int n, double* mat, bool col_major, const char* name) {
+
+void dump_mat(LINEAR_INT m, LINEAR_INT n, double* mat, bool col_major, const char* name) {
  printf("\nDumping %s : \n", name);
- for (int i = 0; i < m; i++) {
+ for (LINEAR_INT i = 0; i < m; i++) {
    printf("[ ");
-   for (int j = 0; j < n; j++) {
+   for (LINEAR_INT j = 0; j < n; j++) {
      if (col_major) { // column maor
        printf(" %.5lf ", mat[j*m+i]);
      } else {         // row major
@@ -39,9 +48,17 @@ void vec_daxpy(LINEAR_INT n,
                double* y,
 	       double alpha,
 	       double* x) {
-  for (int i = 0; i < n; i++){
+#ifdef USE_INTEL_MKL
+cblas_daxpy(n, alpha, x, 1, y, 1);
+#else
+
+#pragma omp parallel for
+  for (LINEAR_INT i = 0; i < n; i++){
     y[i] += alpha * x[i];
   }
+
+#endif
+
 }
 
 void csr_vec_mult(LINEAR_INT n,
@@ -55,37 +72,58 @@ void csr_vec_mult(LINEAR_INT n,
 		  double* t1,
 		  double* t2) {
 
-  for (int i = 0; i < n; i++) {
+#ifdef USE_INTEL_MKL
+  // The interface does NOT match with the manual!!!
+  //mkl_dcsrgemv(transa, m, a, ia, ja, x, y);
+  char c = 'N';
+  mkl_dcsrgemv(&c, &n, A_values, A_ia, A_ja, v, Av);
+
+//void cblas_dgemv (const CBLAS_LAYOUT Layout, const CBLAS_TRANSPOSE trans, const MKL_INT m, const MKL_INT n, const double alpha, const double *a, const MKL_INT lda, const double *x, const MKL_INT incx, const double beta, double *y, const MKL_INT incy);
+
+  cblas_dgemv(CblasColMajor, CblasTrans, n, r, 1.0, Q1, n, Av, 1, 0, t1, 1);
+  cblas_dgemv(CblasColMajor, CblasNoTrans, n, r, 1.0, Q1, n, t1, 1, 0, t2, 1);
+
+#else
+#pragma omp parallel for
+  for (LINEAR_INT i = 0; i < n; i++) {
     Av[i] = 0;
-    for (int j= A_ia[i]; j < A_ia[i+1]; j++) {
-      Av[i] += A_values[j] * v[A_ja[j]];
+    for (LINEAR_INT j= A_ia[i] - 1; j < A_ia[i+1] - 1; j++) {
+      Av[i] += A_values[j] * v[A_ja[j] - 1];
     }
   }
-/*
-  for (int i = 0; i < r; i++) {
+
+#pragma omp parallel for
+  for (LINEAR_INT i = 0; i < r; i++) {
     t1[i] = 0;
-    for (int j = 0 ; j < n; j++) {
+    for (LINEAR_INT j = 0 ; j < n; j++) {
       t1[i] += Q1[i*n+j]*Av[j];
     }
   }
-  for (int i = 0; i < n; i++) {
+
+#pragma omp parallel for
+  for (LINEAR_INT i = 0; i < n; i++) {
     t2[i] = 0;
-    for (int j = 0; j < r; j++) {
+    for (LINEAR_INT j = 0; j < r; j++) {
       t2[i] += Q1[j*n+i]*t1[j];
     }
   }
+#endif
   vec_daxpy(n, Av, -1.0, t2);
-*/
 }
 
 double dot_prod(LINEAR_INT n,
                 double* a,
 		double* b) {
   double s = 0;
-  for (int i = 0; i < n; i++) {
+#ifdef USE_INTEL_MKL
+  s = cblas_ddot(n, a, 1, b, 1);
+#else
+#pragma omp parallel for reduction(+:s)
+  for (LINEAR_INT i = 0; i < n; i++) {
     s += a[i] * b[i];
   }
   //std::cout << "dot_prod = " << s << std::endl;
+#endif
   return s;
 }
 
@@ -93,9 +131,15 @@ double dot_prod(LINEAR_INT n,
 void vec_scale(LINEAR_INT n,
                double* x,
 	       double alpha) {
-  for (int i = 0; i < n; i++){
+#ifdef USE_INTEL_MKL
+//cblas_dscal (const MKL_INT n, const double a, double *x, const MKL_INT incx);
+cblas_dscal(n, alpha, x, 1);
+#else
+#pragma omp parallel for
+  for (LINEAR_INT i = 0; i < n; i++){
     x[i] *= alpha;
   }
+#endif
 }
 void arnoldi_process(LINEAR_INT n,
                      LINEAR_INT* A_ia,
@@ -148,8 +192,8 @@ void linear_solver(LINEAR_INT* A_ia,
   double* mk = (double*)malloc(sizeof(double) * LINEAR_SOLVER_MAX_ITER * n);
   double* x = (double*)malloc(sizeof(double) * n);
   double* res = (double*)malloc(sizeof(double) * n);
-for (int l = 0; l < r; l++) {
-  for (int i = 0; i < n; i++) {
+for (LINEAR_INT l = 0; l < r; l++) {
+  for (LINEAR_INT i = 0; i < n; i++) {
     Vk[i] = rhs[l*n+i];
     x[i] = 0;
   }
@@ -159,7 +203,7 @@ for (int l = 0; l < r; l++) {
   double res_norm = beta_1;
   //std::cout << "beta_1 = " << beta_1 << std::endl;
   vec_scale(n, Vk, 1.0 / beta_1);
-  int k = 1;
+  LINEAR_INT k = 1;
 
   // 1 more arnoldi to get beta_kp1
   while (k < LINEAR_SOLVER_MAX_ITER && 
@@ -169,12 +213,12 @@ for (int l = 0; l < r; l++) {
     arnoldi_process(n, A_ia, A_ja, A_values, 0, Q1, k, Vk, Tk, t1, t2);
 
     /*
-    for (int i = 0; i < k; i++) {
-      for (int j = 0; j < 5; j++) {
+    for (LINEAR_INT i = 0; i < k; i++) {
+      for (LINEAR_INT j = 0; j < 5; j++) {
         Lk[i*5+j] = Tk[i*5+j];
       }
     }
-    for (int i = 0; i < k ;i++) {
+    for (LINEAR_INT i = 0; i < k ;i++) {
       double c = Lk[i*5+2];
       double s = -Lk[i*5+3];
       ci[i] = c / sqrt(c*c+s*s);
@@ -193,7 +237,7 @@ for (int l = 0; l < r; l++) {
     }
     */
 
-    for (int i = 0; i < 5; i++) {
+    for (LINEAR_INT i = 0; i < 5; i++) {
       Lk[(k-1)*5+i] = Tk[(k-1)*5+i]; // only copy line (k-1);
     }
     double c, s, tx, ty;
@@ -224,16 +268,16 @@ for (int l = 0; l < r; l++) {
     //dump_mat(1, k, ci, false, "ci:");
     //dump_mat(1, k, si, false, "si:");
     /*
-    for (int i = 0; i < k; i++) {
+    for (LINEAR_INT i = 0; i < k; i++) {
       g[i] = ci[i];
-      for (int j = 0; j < i; j++) {
+      for (LINEAR_INT j = 0; j < i; j++) {
         g[i] *= si[j];
       }
     }
     dump_mat(1, k, g, false, "g:");
-    for (int i = 0; i < k; i++) {yk[i] = g[i];}
+    for (LINEAR_INT i = 0; i < k; i++) {yk[i] = g[i];}
     // fuck me, we are solving Lk^T yk = gk
-    for (int i = k-1; i >= 0; i--) {
+    for (LINEAR_INT i = k-1; i >= 0; i--) {
       yk[i] = yk[i] / Lk[i*5+2];
       if (i-1 >= 0) {
         yk[i-1] -= Lk[i*5+1] * yk[i];
@@ -243,19 +287,19 @@ for (int l = 0; l < r; l++) {
       }
       yk[i] *= beta_1;
     }
-    for (int i = 0; i < n; i++){
+    for (LINEAR_INT i = 0; i < n; i++){
       x[i] = 0;
-      for (int j = 0; j < k; j++) {
+      for (LINEAR_INT j = 0; j < k; j++) {
         x[i] += yk[j] * Vk[j*n+i];
       }
     }
     */
     
     double tau_j = ci[k-1];
-    for (int i = 0; i < k-1; i++) {tau_j *= si[i];}
+    for (LINEAR_INT i = 0; i < k-1; i++) {tau_j *= si[i];}
     //printf("tau_j = %.8lf\n", tau_j );
-    for (int i = 0; i < n; i++) {mk[(k-1)*n+i] = Vk[(k-1)*n+i];}
-    for (int i = 0; i < n; i++) {
+    for (LINEAR_INT i = 0; i < n; i++) {mk[(k-1)*n+i] = Vk[(k-1)*n+i];}
+    for (LINEAR_INT i = 0; i < n; i++) {
       if (k - 3 >= 0) {
         mk[(k-1)*n+i] -= Lk[(k-1)*5+0] * mk[(k-3)*n+i];
       }
@@ -272,52 +316,58 @@ for (int l = 0; l < r; l++) {
     //dump_mat(1, n, yk, false,"yk:");
     //dump_mat(1, n, &mk[(k-1)*n], false, "mk:");
     //dump_mat(1, n, x,false, "x:");
-    //printf("Iter[%d] res = %.8lf\n", k, res_norm);
+    //prLINEAR_INTf("Iter[%d] res = %.8lf\n", k, res_norm);
     if (res_norm < LINEAR_SOLVER_ABS_TOL ||
         res_norm < LINEAR_SOLVER_REL_TOL * beta_1) {
       printf("RHS[%d] Converged at iter %d, residual = %.6lf\n", l, k, res_norm);
     }
     k++;
   } // while
-  for (int i = 0; i < n; i++) {
+  for (LINEAR_INT i = 0; i < n; i++) {
     sol[l*n+i] = x[i];
   }
 } // for l=1:s
 }
 
-int main() {
-  int n = 100000;
-  int s = 4;
-  int* A_ia = new int[n+1];
-  int* A_ja = new int[n*3-2];
+/*
+LINEAR_INT main() {
+  LINEAR_INT n = 100000;
+  LINEAR_INT s = 4;
+  LINEAR_INT* A_ia = new LINEAR_INT[n+1];
+  LINEAR_INT* A_ja = new LINEAR_INT[n*3-2];
   double* A_values = new double[n*3-2];
   double* rhs = new double[n * s];
   double* sol = new double[n * s];
-  int curr_num = 0;
-  for (int i = 0; i < n; i++) {
-    A_ia[i] = curr_num;
+  LINEAR_INT curr_num = 0;
+  for (LINEAR_INT i = 0; i < n; i++) {
+    A_ia[i] = curr_num+1;
     if (i != 0) {
-      A_ja[curr_num] = i-1;
+      A_ja[curr_num] = i;
       A_values[curr_num] = -1;
       curr_num++;
     }
-    A_ja[curr_num] = i;
+    A_ja[curr_num] = i+1;
     A_values[curr_num] = 4;
     curr_num++;
     if (i != n-1) {
-      A_ja[curr_num] = i + 1;
+      A_ja[curr_num] = i + 2;
       A_values[curr_num] = -1;
       curr_num++;
     }
   }
-  for (int i = 0; i < n; i++) {
+  A_ia[n] = curr_num + 1;
+  for (LINEAR_INT i = 0; i < n; i++) {
     rhs[i] = 1;
     rhs[i+1*n] = (i+1);
     rhs[i+2*n] = sin(i);
     rhs[i+3*n] = sqrt(i);
   }
-  A_ia[n] = curr_num;
   double ddum;
   //dump_mat(5, 4, rhs, true, "RHS:");
+  double t_start = omp_get_wtime();
+  std::cout << "Running with " << omp_get_num_threads() << " threads" << std::endl;
   linear_solver(A_ia, A_ja, A_values, &ddum, rhs, sol, n, s); 
+  double t_end = omp_get_wtime();
+  std::cout << "time_elapsed = " << t_end - t_start << std::endl;
 }
+*/
