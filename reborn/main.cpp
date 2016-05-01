@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
 #endif
 
   if (error == 0) {
-    TraceMin1(n, num_eigs[task_id], CI, CJ, CV, BI, BJ, BV, Y, S);
+    TraceMin1(n, num_eigs[task_id], CI, CJ, CV, BI, BJ, BV, Y, S, -mu);
   }
 
 	MPI_Finalize();
