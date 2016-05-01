@@ -26,13 +26,13 @@ static const char MAT_GXXF[6] = "GXXF";
  * @output S eigenvalues of the system
  */
 void TraceMin1(const MKL_INT n,
-							 const MKL_INT p,
-							 const MKL_INT *A_i,
-							 const MKL_INT *A_j,
-							 const double *A_v,
-							 const MKL_INT *B_i,
-							 const MKL_INT *B_j,
-							 const double *B_v,
+               const MKL_INT p,
+               const MKL_INT *A_i,
+               const MKL_INT *A_j,
+               const double *A_v,
+               const MKL_INT *B_i,
+               const MKL_INT *B_j,
+               const double *B_v,
                double *&Y,
                double *&S)
 {
@@ -55,7 +55,6 @@ void TraceMin1(const MKL_INT n,
          *V       = NULL,						// the matrix V
          *BV      = NULL,
          *BZ      = NULL,
-         *BY      = NULL,
          *AZ      = NULL,
          *AY      = NULL,
          *M       = NULL,
@@ -65,14 +64,12 @@ void TraceMin1(const MKL_INT n,
          *W       = NULL,
          *Z       = NULL,
          *R       = NULL,
-         *C       = NULL,
          *BC      = NULL,
          *PBC     = NULL,
          *BCU     = NULL,
          *BCW     = NULL,
          *YC      = NULL,
          *BYC     = NULL,
-         *PBYC    = NULL,
          *MS      = NULL,						// the magnitude of S
          *TS      = NULL,						// calculated S
          *tau     = NULL;
@@ -94,74 +91,68 @@ void TraceMin1(const MKL_INT n,
   AY    = new double[n * s];
   R     = new double[n * s];
   BC    = new double[n * p];
+  PBC   = new double[n * p];
   BCU   = new double[p * s];
   BCW   = new double[n * s];
   YC    = new double[n * (s + p)];
   BYC   = new double[n * (s + p)];
+  Y     = new double[n * p];
   S     = new double[p];
   TS    = new double[s];
   MS    = new double[s];
-  norms = new double[s];
-  tau   = new double[s];
+  norms = new double[p];
+  tau   = new double[s + p];
   perm  = new MKL_INT[s];
   
-	/*---------------------------------------------------------------------------
-	 * the matrices Y is submatrices of the matrix YC and
-   * the matrices BYC and PBYC are the submatrices of the matrix BYC
-	 *---------------------------------------------------------------------------*/
-  Y     = YC;
-  BY    = BYC;
+  /*---------------------------------------------------------------------------
+   * start the timer
+   *---------------------------------------------------------------------------*/
+  t_start = omp_get_wtime();
 
-	/*---------------------------------------------------------------------------
-	 * start the timer
-	 *---------------------------------------------------------------------------*/
-	t_start = omp_get_wtime();
-
-	/*---------------------------------------------------------------------------
-	 * start with V = [I; I; ...]
-	 *---------------------------------------------------------------------------*/
-	for (int i = 0; i < n; ++i) {
+  /*---------------------------------------------------------------------------
+   * start with V = [I; I; ...]
+   *---------------------------------------------------------------------------*/
+  for (int i = 0; i < n; ++i) {
     V[(i % s) * n + i] = 1.0;
-	}
-	//double*View(V, PETSC_VIEWER_STDOUT_SELF);
+  }
 
-	/*---------------------------------------------------------------------------
-	 * generate the order of annihiliation
-	 *---------------------------------------------------------------------------*/
-	GenerateAnnihilationOrder(s, w, orders);
-	//while (true) {
+  /*---------------------------------------------------------------------------
+   * generate the order of annihiliation
+   *---------------------------------------------------------------------------*/
+  GenerateAnnihilationOrder(s, w, orders);
+  //while (true) {
   int k;
   for (k = 0; k < MAX_NUM_ITER; ++k) {
-		/*---------------------------------------------------------------------------
-		 * if some columns have been converged, need to project the subspace orthogonal to BC
-		 *---------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+     * if some columns have been converged, need to project the subspace orthogonal to BC
+     *---------------------------------------------------------------------------*/
     if (c != 0) {
       cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, c, s, n, 1.0, PBC, n, V, n, 0.0, BCU, c);
       cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, n, s, c, 1.0, PBC, n, BCU, c, 0.0, BCW, n);
       cblas_daxpy(n * s, -1.0, BCW, 1, V, 1);
     }
-		/*---------------------------------------------------------------------------
-		 * M = V^T B V
-		 *---------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+     * M = V^T B V
+     *---------------------------------------------------------------------------*/
     mkl_dcsrmm(&NTRANSA, &n, &s, &n, &D_ONE, MAT_GXXF, B_v, B_j, B_i, B_i+1, V, &n, &D_ZERO, BV, &n);
     cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, s, s, n, 1.0, V, n, BV, n, 0.0, M, s);
-		/*---------------------------------------------------------------------------
-		 * Perform eigen decomposition
-		 *---------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+     * Perform eigen decomposition
+     *---------------------------------------------------------------------------*/
     j_start = omp_get_wtime();
-		Jacobi1(orders, s, w, M, S);
+    Jacobi1(orders, s, w, M, TS);
     j_end = omp_get_wtime();
     j_total += j_end - j_start;
 
-		/*---------------------------------------------------------------------------
-		 * MS = S^{-1/2}
-		 * X = X * M
-		 * BY = BV * X
-		 * Z = V * X
-		 * AZ = A * Z 
-		 * M = Z^T * AZ
-		 *---------------------------------------------------------------------------*/
-    vdInvSqrt(s, S, MS);
+    /*---------------------------------------------------------------------------
+     * MS = S^{-1/2}
+     * X = X * M
+     * BY = BV * X
+     * Z = V * X
+     * AZ = A * Z 
+     * M = Z^T * AZ
+     *---------------------------------------------------------------------------*/
+    vdInvSqrt(s, TS, MS);
     for (int j = 0; j < s; ++j) {
       cblas_dscal(s, MS[j], M + j*s, 1);
     }
@@ -171,40 +162,38 @@ void TraceMin1(const MKL_INT n,
     cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, s, s, n, 1.0, Z, n, AZ, n, 0.0, M, s);
 
     /*---------------------------------------------------------------------------
-		 * Perform eigen decomposition
-		 *---------------------------------------------------------------------------*/
+     * Perform eigen decomposition
+     *---------------------------------------------------------------------------*/
     j_start = omp_get_wtime();
-		Jacobi2(orders, s, w, M, S);
+    Jacobi2(orders, s, w, M, TS);
     j_end = omp_get_wtime();
     j_total += j_end - j_start;
-	
+
 #if 0
-    if (k == 2) {
-      ViewDense("M", s, s, M);
-    }
+    ViewDense("M", s, s, M);
 #endif
-		/*---------------------------------------------------------------------------
-		 * Sort the eigenvalues and get the permuation
-		 *---------------------------------------------------------------------------*/
-		vdAbs(s, S, MS);
-		for (int j = 0; j < s; ++j) {
-			perm[j] = j + 1;
-		}
+    /*---------------------------------------------------------------------------
+     * Sort the eigenvalues and get the permuation
+     *---------------------------------------------------------------------------*/
+    vdAbs(s, TS, MS);
+    for (int j = 0; j < s; ++j) {
+      perm[j] = j + 1;
+    }
     dlasrt2(&INCREASING, &s, MS, perm, &info);
-    
-		/*---------------------------------------------------------------------------
-		 * Permute X and S, and postmultiply Z, BZ and AZ by X
-		 *---------------------------------------------------------------------------*/
+
+    /*---------------------------------------------------------------------------
+     * Permute X and S, and postmultiply Z, BZ and AZ by X
+     *---------------------------------------------------------------------------*/
     LAPACKE_dlapmr(LAPACK_ROW_MAJOR, 1, s, s, M, s, perm);
-    LAPACKE_dlapmr(LAPACK_ROW_MAJOR, 1, s, 1, S, 1, perm);
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, n, s, s, 1.0, Z, n, M, s, 0.0, Y, n);
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, n, s, s, 1.0, BZ, n, M, s, 0.0, BY, n);
+    LAPACKE_dlapmr(LAPACK_ROW_MAJOR, 1, s, 1, TS, 1, perm);
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, n, s, s, 1.0, Z, n, M, s, 0.0, YC, n);
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, n, s, s, 1.0, BZ, n, M, s, 0.0, BYC, n);
     cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, n, s, s, 1.0, AZ, n, M, s, 0.0, AY, n);
-		
-		/*---------------------------------------------------------------------------
-		 * R = AY - BY * M
-		 *---------------------------------------------------------------------------*/
-    cblas_dcopy(n * s, BY, 1, R, 1);
+
+    /*---------------------------------------------------------------------------
+     * R = AY - BY * M
+     *---------------------------------------------------------------------------*/
+    cblas_dcopy(n*s, BYC, 1, R, 1);
 
 #if 0
     if (k == 2) {
@@ -214,51 +203,51 @@ void TraceMin1(const MKL_INT n,
 #endif
 
     for (int j = 0; j < s; ++j) {
-      cblas_dscal(n, S[j], R + j*n, 1);
+      cblas_dscal(n, TS[j], R + j*n, 1);
     }
-    cblas_daxpy(n * s, -1.0, AY, 1, R, 1);
+    cblas_daxpy(n*s, -1.0, AY, 1, R, 1);
 
-		/*---------------------------------------------------------------------------
-		 * Test for convergence
-		 *---------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+     * Test for convergence
+     *---------------------------------------------------------------------------*/
     uc = p - c;
-		for (int j = 0; j < uc; ++j) {
+    for (int j = 0; j < uc; ++j) {
       norms[j] = cblas_dnrm2(n, R + j*n, 1);
       /*---------------------------------------------------------------------------
        * If any column is converged, move it to C and reset the column and
        * move eigenvalues from TS to S
        *---------------------------------------------------------------------------*/
-			if (norms[j] <= EIGEN_CONVERGENCE_TOL * MS[j]) {
+      if (norms[j] <= EIGEN_CONVERGENCE_TOL * MS[j]) {
         converged = true;
-        cblas_dcopy(n, YC + j * n, 1, YC + (s + c) * n, 1);
+        cblas_dcopy(n, YC + j*n, 1, YC + (s+c)*n, 1);
         for (int q = 0; q < n; ++q) {
-          YC[j * n + q] = ((q - j) % s == 0) ? 1.0 : 0.0;
+          YC[j*n + q] = ((q-j)%s == 0) ? 1.0 : 0.0;
         }
         S[c] = TS[j];
         ++c;
       }
-		}
-		if (k % 20 == 0) {
-		  printf("Iter[%d] : Number of converged columns = %d\n", k, c);
+    }
+    if (k % 20 == 0) {
+      printf("Iter[%d] : Number of converged columns = %d\n", k, c);
       for (int j = 0; j < p; ++j) {
         printf("norms[%d]=%.10lf, ev[%d]=%.10lf\n", j, norms[j], j, MS[j]);
       }
-		}
-		if (c == p) break;
-	
-		/*---------------------------------------------------------------------------
-		 * if more columns have been converged, need new projection matrix for BC
-		 *---------------------------------------------------------------------------*/
+    }
+    if (c == p) break;
+
+    /*---------------------------------------------------------------------------
+     * if more columns have been converged, need new projection matrix for BC
+     *---------------------------------------------------------------------------*/
     if (converged) {
       converged = false;
       /*---------------------------------------------------------------------------
        * BC = B * C
        *---------------------------------------------------------------------------*/
-      mkl_dcsrmm(&NTRANSA, &n, &c, &n, &D_ONE, MAT_GXXF, B_v, B_j, B_i, B_i+1, C, &n, &D_ZERO, BC, &n);
+      mkl_dcsrmm(&NTRANSA, &n, &c, &n, &D_ONE, MAT_GXXF, B_v, B_j, B_i, B_i+1, YC + s*n, &n, &D_ZERO, BC, &n);
       /*---------------------------------------------------------------------------
        * Perform QR factorization of BC and get PBC
        *---------------------------------------------------------------------------*/
-      cblas_dcopy(n * c, BC, 1, PBC, 1);
+      cblas_dcopy(n*c, BC, 1, PBC, 1);
       LAPACKE_dgeqrf(LAPACK_COL_MAJOR, n, c, PBC, n, tau);
       LAPACKE_dorgqr(LAPACK_COL_MAJOR, n, c, c, PBC, n, tau);
     }
@@ -267,58 +256,46 @@ void TraceMin1(const MKL_INT n,
      * If some columns have been converged, copy BC to BYC
      *---------------------------------------------------------------------------*/
     if (c != 0) {
-      cblas_dcopy(n * c, BC, 1, BYC + n * s, 1);
+      cblas_dcopy(n*c, BC, 1, BYC + n*s, 1);
     }
-		/*---------------------------------------------------------------------------
-		 * Perform QR factorization of BY and get Q1
-		 *---------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+     * Perform QR factorization of BYC and get Q1
+     *---------------------------------------------------------------------------*/
     LAPACKE_dgeqrf(LAPACK_COL_MAJOR, n, s+c, BYC, n, tau);
     LAPACKE_dorgqr(LAPACK_COL_MAJOR, n, s+c, s+c, BYC, n, tau);
 
-		/*---------------------------------------------------------------------------
-		 * Compute the right-hand-side of the reduced system
-		 *---------------------------------------------------------------------------*/
-    cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, s, s, n, 1.0, BY, n, AY, n, 0.0, U, s);
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, n, s, s, 1.0, BY, n, U, s, 0.0, W, n);
+    /*---------------------------------------------------------------------------
+     * Compute the right-hand-side of the reduced system
+     *---------------------------------------------------------------------------*/
+    cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, s+c, s, n, 1.0, BYC, n, AY, n, 0.0, U, s+c);
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, n, s, s+c, 1.0, BYC, n, U, s+c, 0.0, W, n);
     cblas_daxpy(n * s, -1.0, W, 1, AY, 1);
 
-    if (k == 20) {
-      ViewDense("Q1", n, s, BY);
-      ViewDense("RHS", n, s, AY);
-      return;
-    }
-		/*---------------------------------------------------------------------------
-		 * CG / MINRES
-		 *---------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------
+     * CG / MINRES
+     *---------------------------------------------------------------------------*/
     cg_start = omp_get_wtime();
-    linear_solver(A_i, A_j, A_v, BY, AY, V, n, s);
+    linear_solver(A_i, A_j, A_v, BYC, AY, V, n, s);
     cg_end = omp_get_wtime();
     cg_total += cg_end - cg_start;
-    
-    cblas_daxpy(n * s, -1.0, Y, 1, V, 1);
-    cblas_dscal(n * s, -1.0, V, 1);
+
+    cblas_daxpy(n*s, -1.0, YC, 1, V, 1);
+    cblas_dscal(n*s, -1.0, V, 1);
   }
 
-	/*---------------------------------------------------------------------------
-	 * stop the timer
-	 *---------------------------------------------------------------------------*/
-	t_end = omp_get_wtime();
-	printf("Total iter = %d\n", k);
-	printf("Total time = %.6lf\n", t_end - t_start);
-	printf("Jacobi time = %.6lf (average = %.6lf)\n", j_total, j_total / (2 * k));
-	printf("Linear time = %.6lf\n", cg_total);
-#if 0
-	PetscPrintf(PETSC_COMM_SELF, "AY:\n");
-	double*View(AY, PETSC_VIEWER_STDOUT_SELF);
-	PetscPrintf(PETSC_COMM_SELF, "BY:\n");
-	double*View(BY, PETSC_VIEWER_STDOUT_SELF);
-#endif
+  /*---------------------------------------------------------------------------
+   * stop the timer
+   *---------------------------------------------------------------------------*/
+  t_end = omp_get_wtime();
+  printf("Total iter = %d\n", k);
+  printf("Total time = %.6lf\n", t_end - t_start);
+  printf("Jacobi time = %.6lf (average = %.6lf)\n", j_total, j_total / (2 * k));
+  printf("Linear time = %.6lf\n", cg_total);
 
-	/*---------------------------------------------------------------------------
-	 * copy back the vector
-	 *---------------------------------------------------------------------------*/
-  Y = new double[n * p];
-  cblas_dcopy(n * p, YC + n * s, 1, Y, 1);
+  /*---------------------------------------------------------------------------
+   * copy back the vector
+   *---------------------------------------------------------------------------*/
+  cblas_dcopy(n*p, YC + s*n, 1, Y, 1);
 
 	/*---------------------------------------------------------------------------
 	 * deallocate the matrices and vectors
@@ -326,7 +303,6 @@ void TraceMin1(const MKL_INT n,
   if (V      != NULL) delete [] V;
   if (BV     != NULL) delete [] BV;
   if (BZ     != NULL) delete [] BZ;
-  if (BY     != NULL) delete [] BY;
   if (M      != NULL) delete [] M;
   if (N      != NULL) delete [] N;
   if (X      != NULL) delete [] X;
@@ -336,12 +312,12 @@ void TraceMin1(const MKL_INT n,
   if (AZ     != NULL) delete [] AZ;
   if (AY     != NULL) delete [] AY;
   if (R      != NULL) delete [] R;
-  if (C      != NULL) delete [] C;
   if (BC     != NULL) delete [] BC;
+  if (PBC    != NULL) delete [] PBC;
   if (BCU    != NULL) delete [] BCU;
   if (BCW    != NULL) delete [] BCW;
   if (YC     != NULL) delete [] YC;
-  if (PBYC   != NULL) delete [] PBYC;
+  if (BYC    != NULL) delete [] BYC;
   if (TS     != NULL) delete [] TS;
   if (MS     != NULL) delete [] MS;
   if (orders != NULL) delete [] orders;
