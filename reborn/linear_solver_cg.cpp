@@ -30,18 +30,18 @@ void cg_core(const MKL_INT* , const MKL_INT* , const double* ,
 /* implements CG linear solver with OpenMp */
 
 void linear_solver(
-    const MKL_INT * A_ia,
-    const MKL_INT * A_ja,
-    const double  *  A_values, // CSR format of full matri A
-    const double  *  Q1,          // n * s double, column major
-    const double  *  RHS,         // n * s double, column major
-    double*  solution,    // n * s double, column major
-    MKL_INT n,
-    MKL_INT s) {
+    const MKL_INT*  A_ia,
+    const MKL_INT*  A_ja,
+    const double*   A_values,    // CSR format of full matri A
+    const double*   Q1,          // n * s double, column major
+    const double*   RHS,         // n * s double, column major
+    double*         solution,    // n * s double, column major
+    MKL_INT         n,
+    MKL_INT         s) {
 
   int its;
-  double  *RHSwrt = new double [n*s];   //workspace of p in cg
-  double  *RHSCOPY = new double [n*s];  //workspace of p in cg
+  double  *RHSwrt   = new double [n*s];   //workspace of p in cg
+  double  *RHSCOPY  = new double [n*s];  //workspace of p in cg
   double  *WKSPACE1 = new double [n*s]; //workspace of Ap in cg 
   double  *WKSPACE2 = new double [n*s]; //workspace of I-QQ'Ax in cg 
 
@@ -60,7 +60,10 @@ void linear_solver(
 
 #pragma omp parallel for
   for(int j=0; j<s; j++){
-    cg_core(A_ia, A_ja, A_values, Q1, RHSwrt+n*j, RHSCOPY+n*j, WKSPACE1+n*j, WKSPACE2+n*j, solution+n*j, n, s, its);
+    cg_core(A_ia        ,   A_ja      , A_values    , 
+            Q1          , RHSwrt+n*j  , RHSCOPY+n*j , 
+            WKSPACE1+n*j, WKSPACE2+n*j, solution+n*j, 
+            n           , s           , its);
   }
 
 #if CCCC==1
@@ -87,55 +90,17 @@ void i_qqax(
     double*        Y,
     MKL_INT        n,
     MKL_INT        s) {
-#if CCCC == 1
-  printf("\nin imqqax rhsX==p : ");
-  for(int i=0; i<n; i++){
-    printf("%f ", X[i]);
-  }
 
-  printf("\nin imqqax A : ");
-  for(int i=0; i<n; i++){
-    printf("%f ", va[i]);
-  }
-
-  printf("\nin imqqax ia : ");
-  for(int i=0; i<n+1; i++){
-    printf("%d ", ia[i]);
-  }
-  printf("\nin imqqax ja : ");
-  for(int i=0; i<5; i++){
-    printf("%d ", ja[i]);
-  }
-#endif
-
+  //sparse mat-vec
   for(int i=0; i<n; i++){
     Y[i]=0.0;
     for(int jt=ia[i]; jt<ia[i+1]; jt++){
       Y[i]+=X[ ja[jt-1]-1 ]*va[jt-1];
     }
   }
-#if CCCC == 1
-  printf("\nin imqqax A p:\n ");
-  for(int i=0; i<n; i++){
-    printf("%f ", Y[i]);
-  }
-#endif
 
-  cblas_dgemv(CblasColMajor,CblasTrans,n,s,1.0,Q, n, Y,  1,  0,QtAX, 1);
-#if CCCC == 1
-  printf("\nin imqqax QA p:\n ");
-  for(int i=0; i<s; i++){
-    printf("%f ", QtAX[i]);
-  }
-#endif
-
-  cblas_dgemv(CblasColMajor, CblasNoTrans, n,s,-1.0,Q,n, QtAX,1, 1,Y, 1);
-#if CCCC == 1
-  printf("\nin imqqax I_QQAp:\n ");
-  for(int i=0; i<n; i++){
-    printf("%f ", Y[i]);
-  }
-#endif
+  cblas_dgemv(CblasColMajor, CblasTrans  , n,s, 1.0,Q, n, Y   , 1, 0,QtAX, 1);
+  cblas_dgemv(CblasColMajor, CblasNoTrans, n,s,-1.0,Q, n, QtAX, 1, 1,Y   , 1);
 
 }
 
@@ -154,14 +119,14 @@ void cg_core(
     const MKL_INT* A_ja,
     const double*  A_v,
     const double*  Q1,
-    double *       rhs,
+    double*        rhs,
     double*        rhscopy,
     double*        wkspace1,
     double*        wkspace2,
     double*        solution,
     MKL_INT        n,
     MKL_INT        s,
-    int           &itr_out
+    int            &itr_out
     ) {
 
   int    iter   = 0;
@@ -190,7 +155,6 @@ void cg_core(
     cblas_daxpy (n,-alpha,Ap, 1, r, 1);//upD r
 
     if( (rnorm2=norm2(r,n)) < 10e-6) {
-      //fprintf(stderr,"\nrnrom<10e-6\n");
       break;
     }
     beta = (rnorm2*rnorm2)/rnorm/rnorm;
@@ -209,9 +173,42 @@ void cg_core(
 #if CCCC==1
 //just copy lines for easy 
 void all_dump_debug_chunk(){
+//linear_solver()a
+#if CCCC==1
   printf(" \nn,s= %d %d ",n,s);
   printf(" \nA  = [ "); for(int i=0; i<s  ; printf("%f ", A_values[i++]));
   printf("]\nQ  = [ "); for(int i=0; i<n*s; printf("%f ", Q1[i++])      ); 
   printf("]\nRHS= [ "); for(int i=0; i<n*s; printf("%f ", RHS[i++])     );
+#endif
+
+//i_qqax()
+#if CCCC == 1
+  printf("\ni_qqax X = [ ");
+  for(int i=0; i<n; printf("%f ",X[i++]));
+  printf("]\ni_qqax va =[ ");
+  for(int i=0; i<n; printf("%f ",va[i++]));
+  printf("]\ni_qqax ia =[ ");
+  for(int i=0; i<n+1; printf("%f ",ia[i++]));
+#endif
+#if CCCC == 1
+  printf("]\ni_qqax Ap = [ ");
+  for(int i=0; i<n; printf("%f ",Y[i++]));
+#endif
+#if CCCC == 1
+  printf("]\ni_qqax QAp=[ ");
+  for(int i=0; i<s; printf("%f ", QtAX[i++]));
+#endif
+
+#if CCCC == 1
+  printf("]\ni_qqax I_QQAp = [:");
+  for(int i=0; i<n; printf("%f ", Y[i++]));
+#endif
+
+
 }
 #endif
+
+
+
+
+
