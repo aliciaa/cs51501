@@ -29,10 +29,10 @@ all: $(EXE)
 %.o : %.c
 	$(COMPILE) $(INCLUDES) $(CCFLAGS) -c $< -o $@
 
-tracemin_deflation: main.o view.o matio.o mmio.o tracemin_deflation.o jacobi1.o linear_solver_mres.o
+tracemin_deflation: main.o view.o matio.o mmio.o tracemin_deflation.o jacobi.o linear_solver_mres.o
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
-tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi1.o linear_solver_mres.o
+tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi.o linear_solver_mres.o
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
 clean:
