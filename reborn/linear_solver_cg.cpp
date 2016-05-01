@@ -87,7 +87,7 @@ void linear_solver(
             Q1          , RHSwrt+n*j  , RHSCOPY+n*j , 
             WKSPACE1+n*j, WKSPACE2+n*j, solution+n*j, 
             n           , s           , its         ,
-            sig);
+            sig[j]);
   }
 
 #if CCCC==1
