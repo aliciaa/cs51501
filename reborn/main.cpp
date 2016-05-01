@@ -161,8 +161,14 @@ int main(int argc, char *argv[])
 #endif
 
   if (error == 0) {
-    TraceMin1(n, num_eigs[task_id], CI, CJ, CV, BI, BJ, BV, Y, S, -mu);
+    TraceMin1(n, num_eigs[task_id], CI, CJ, CV, BI, BJ, BV, Y, S);
   }
+	
+	printf("Final eigenvalues: ");
+	for (int j = 0; j < num_eigs[task_id]; ++j) {
+		printf("%12.10lf ", S[j] - mu);
+	}
+	printf("\n");
 
 	MPI_Finalize();
   
