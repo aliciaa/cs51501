@@ -53,27 +53,27 @@ void GenerateAnnihilationOrder(const int n,
  * @input n dimension of the matrix
  * @input w width of the matrix orders
  * @input A the matrix to be decomposed
- * @output A the matrix V^T * A * V
  * @output A the matrix contains the eigenvectors of A
  * @output S the vector contains the eigenvalues of A
  */
 void Jacobi1(const int* orders,
 					 	 const int n,
 						 const int w,
-						 double *A,
-						 double *S)
+						 double *&A,
+						 double *&S,
+             bool spd)
 {
 
 	/*---------------------------------------------------------------------------
 	 * declare an orthogonal matrix U for intermediate step and a matrix B
 	 *---------------------------------------------------------------------------*/
   double *U = new double[n * n];
+  double *W = new double[n * n];
   double *B = new double[n * n];
 
 	/*---------------------------------------------------------------------------
 	 * declare variables
 	 *---------------------------------------------------------------------------*/
-	const double tol = 1e-12;	    			// tolerance
 	const int m = n / 2;						    // max number of annihiliations
 	double aii, ajj, aij,					      // norms of cols i and j; dot product of cols i and j
 				 a, b, t, c, s;	      				// intermediate values
@@ -82,6 +82,13 @@ void Jacobi1(const int* orders,
 			p, q,											      // counting variables
 			niter = 0;
 	bool even = true;				            // even number of rotations
+
+	/*---------------------------------------------------------------------------
+	 * copy A to W for future use
+	 *---------------------------------------------------------------------------*/
+  if (!spd) {
+    memcpy(W, A, n * n * sizeof(double));
+  }
 
 	do {
 		nnz = n * (n - 1) / 2;						// set the total number of nonzeros
@@ -129,7 +136,7 @@ void Jacobi1(const int* orders,
           aii = sqrt(aii);
           ajj = sqrt(ajj);
 
-					if (fabs(aij) < tol * aii * ajj) {
+					if (fabs(aij) < JACOBI_TOL * aii * ajj) {
 						/*---------------------------------------------------------------------------
 						 * decrement the off-diagonal nnz
 						 *---------------------------------------------------------------------------*/
@@ -187,12 +194,22 @@ void Jacobi1(const int* orders,
   for (int i = 0; i < n; ++i) {
     S[i] = cblas_dnrm2(n, A + i*n, 1);
     cblas_dscal(n, 1.0/S[i], A + i*n, 1);
+    /*---------------------------------------------------------------------------
+     * if matrix A has negative eigenvalues, we need to determine the sign of the eigenvalues
+     *---------------------------------------------------------------------------*/
+    if (!spd) {
+      cblas_dgemv(CblasColMajor, CblasNoTrans, n, n, 1.0, W, n, A + i*n, 1, 0.0, U + i*n, 1);
+      a = cblas_ddot(n, A + i*n, 1, U + i*n, 1);
+      b = cblas_dnrm2(n, A + i*n, 1);
+      S[i] = a / b;
+      if (S[i] < 0) {
+        cblas_dscal(n, -1.0, A + i*n, 1);
+      }
+    }
   }
-	
-	/*---------------------------------------------------------------------------
-	 * deallocate U, B and D
-	 *---------------------------------------------------------------------------*/
+
   delete [] U;
+  delete [] W;
   delete [] B;
 }
 
@@ -222,7 +239,6 @@ void Jacobi2(const int* orders,
 	/*---------------------------------------------------------------------------
 	 * declare variables
 	 *---------------------------------------------------------------------------*/
-	const double tol = 1e-12;				// tolerance
 	const int m = n / 2;						// max number of annihiliations
 	double norm,                    // norm of A
 	       aii, ajj, aij,					  // principal submatrix values of A
@@ -269,7 +285,7 @@ void Jacobi2(const int* orders,
           aij = A[j * n + i];
           ajj = A[j * (n + 1)];
 
-					if (fabs(aij) < tol * norm) {
+					if (fabs(aij) < JACOBI_TOL * norm) {
 						/*---------------------------------------------------------------------------
 						 * decrement the off-diagonal nnz
 						 *---------------------------------------------------------------------------*/
