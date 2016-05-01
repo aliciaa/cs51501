@@ -34,7 +34,8 @@ void TraceMin1(const MKL_INT n,
 							 const MKL_INT *B_j,
 							 const double *B_v,
                double *&Y,
-               double *&S)
+               double *&S,
+	       double shift)
 {
 	/*---------------------------------------------------------------------------
 	 * declaration of variables
@@ -203,7 +204,7 @@ void TraceMin1(const MKL_INT n,
 		if (k % 20 == 0) {
 		  printf("Iter[%d] : Number of converged columns = %d\n", k, c);
       for (int j = 0; j < p; ++j) {
-        printf("norms[%d]=%.10lf, ev[%d]=%.10lf\n", j, norms[j], j, MS[j]);
+        printf("norms[%d]=%.10lf, ev[%d]=%.10lf\n", j, norms[j], j, S[j]);
       }
 		}
 		if (c == p) break;
@@ -249,6 +250,9 @@ void TraceMin1(const MKL_INT n,
 	printf("Total time = %.6lf\n", t_end - t_start);
 	printf("Jacobi time = %.6lf (average = %.6lf)\n", j_total, j_total / (2 * k));
 	printf("Linear time = %.6lf\n", cg_total);
+        for (int j = 0; j < p; ++j) {
+          printf("final ev[%d]=%.10lf\n", j, S[j] + shift);
+        }
 #if 0
 	PetscPrintf(PETSC_COMM_SELF, "AY:\n");
 	double*View(AY, PETSC_VIEWER_STDOUT_SELF);
