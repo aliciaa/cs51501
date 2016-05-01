@@ -149,7 +149,7 @@ void TraceMin1(const MKL_INT n,
 		 * Perform eigen decomposition
 		 *---------------------------------------------------------------------------*/
     j_start = omp_get_wtime();
-		JacobiEigenDecomposition(orders, s, w, M, S);
+		Jacobi1(orders, s, w, M, S);
     j_end = omp_get_wtime();
     j_total += j_end - j_start;
 
@@ -174,7 +174,7 @@ void TraceMin1(const MKL_INT n,
 		 * Perform eigen decomposition
 		 *---------------------------------------------------------------------------*/
     j_start = omp_get_wtime();
-		JacobiEigenDecomposition(orders, s, w, M, S);
+		Jacobi2(orders, s, w, M, S);
     j_end = omp_get_wtime();
     j_total += j_end - j_start;
 	

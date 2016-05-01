@@ -102,56 +102,57 @@ int main(int argc, char *argv[])
           *Y  = NULL,               // eigenvectors
           *S  = NULL;               // eigenvalues
 
-  /*---------------------------------------------------------------------------
-   * initialize MPI
-   *---------------------------------------------------------------------------*/
+	/*---------------------------------------------------------------------------
+	 * initialize MPI
+	 *---------------------------------------------------------------------------*/
 	MPI_Init(&argc, &argv);
-  MPI_Comm_rank(MPI_COMM_WORLD, &task_id);
-  MPI_Comm_size(MPI_COMM_WORLD, &num_tasks);
+	MPI_Comm_rank(MPI_COMM_WORLD, &task_id);
+	MPI_Comm_size(MPI_COMM_WORLD, &num_tasks);
 
-    MKL_INT m;
+	MKL_INT m;
 
-    /*---------------------------------------------------------------------------
-     * read in the command line options
-     *---------------------------------------------------------------------------*/
-    for (int i = 1; i < argc; ++i) {
-      if (!strcmp(argv[i], "-p")) p = atoi(argv[++i]);
-      if (!strcmp(argv[i], "-fA")) fileA = argv[++i];
-      if (!strcmp(argv[i], "-fB")) fileB = argv[++i];
-      if (!strcmp(argv[i], "-fC")) fileO = argv[++i];
-    }
+	/*---------------------------------------------------------------------------
+	 * read in the command line options
+	 *---------------------------------------------------------------------------*/
+	for (int i = 1; i < argc; ++i) {
+		if (!strcmp(argv[i], "-p")) p = atoi(argv[++i]);
+		if (!strcmp(argv[i], "-fA")) fileA = argv[++i];
+		if (!strcmp(argv[i], "-fB")) fileB = argv[++i];
+		if (!strcmp(argv[i], "-fC")) fileO = argv[++i];
+	}
 
-    /*---------------------------------------------------------------------------
-     * read in matrices A and B
-     *---------------------------------------------------------------------------*/
-    error = readSymmSparseMatrix(fileA, n, AI, AJ, AV);
-    error = readSymmSparseMatrix(fileB, m, BI, BJ, BV);
+	/*---------------------------------------------------------------------------
+	 * read in matrices A and B
+	 *---------------------------------------------------------------------------*/
+	error = readSymmSparseMatrix(fileA, n, AI, AJ, AV);
+	error = readSymmSparseMatrix(fileB, m, BI, BJ, BV);
 
-    if (n != m) {
-      printf("Size of A must be equal to size of B\n");
-      error = 1;
-    }
-    MKL_INT* CI = NULL;
-    MKL_INT* CJ = NULL;
-    double* CV = NULL;
-    double mu = 0;
-        FILE* fp;
-        fp = fopen("./intervals.txt", "r");
-        int N;
-        fscanf(fp, "%d\n", &N);
-        assert(N == num_tasks);
-        double* intervals = new double[N+1];
-        int* num_eigs = new int[N];
-        for (int i = 0; i <= N; i++) {
-          fscanf(fp, "%lf\n", &(intervals[i]));
-        }
-        for (int i = 0; i < N; i++) {
-          fscanf(fp, "%d\n", &(num_eigs[i]));
-        }
-        printf("task[%d] working on [%.6lf, %.6lf] with %d eigs\n", task_id,  intervals[task_id], intervals[task_id+1], num_eigs[task_id]);
-        fclose(fp);
-    mu = -(intervals[task_id] + intervals[task_id+1])/2;
-    a_plus_mu_b(n, AI, AJ, AV, BI, BJ, BV, mu, &CI, &CJ, &CV); 
+	if (n != m) {
+		printf("Size of A must be equal to size of B\n");
+		error = 1;
+	}
+	MKL_INT* CI = NULL;
+	MKL_INT* CJ = NULL;
+	double* CV = NULL;
+	double mu = 0;
+	FILE* fp;
+	fp = fopen("./intervals.txt", "r");
+	int N;
+	fscanf(fp, "%d\n", &N);
+	assert(N == num_tasks);
+	double* intervals = new double[N+1];
+	int* num_eigs = new int[N];
+	for (int i = 0; i <= N; i++) {
+		fscanf(fp, "%lf\n", &(intervals[i]));
+	}
+	for (int i = 0; i < N; i++) {
+		fscanf(fp, "%d\n", &(num_eigs[i]));
+	}
+	printf("task[%d] working on [%.6lf, %.6lf] with %d eigs\n", task_id, intervals[task_id], intervals[task_id+1],
+			num_eigs[task_id]);
+	fclose(fp);
+	mu = -(intervals[task_id] + intervals[task_id+1])/2;
+	a_plus_mu_b(n, AI, AJ, AV, BI, BJ, BV, mu, &CI, &CJ, &CV); 
 
 #if 0
   ViewCSR("A", n, AI, AJ, AV);
@@ -159,11 +160,9 @@ int main(int argc, char *argv[])
   ViewCSR("C", n, CI, CJ, CV);
 #endif
 
-#if 1
   if (error == 0) {
     TraceMin1(n, num_eigs[task_id], CI, CJ, CV, BI, BJ, BV, Y, S);
   }
-#endif
 
 	MPI_Finalize();
   
