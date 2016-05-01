@@ -172,7 +172,8 @@ void linear_solver(const LINEAR_INT* A_ia,
                    const double* rhs,         // n * s double, column major
                    double* sol,    // n * s double, column major
                    LINEAR_INT n,
-                   LINEAR_INT r) {
+                   LINEAR_INT r,
+                   double* Sigmas) {
   // [-2, -1, 0, 1, 2]; 
   double* t1 = (double*)malloc(sizeof(double) * r);
   double* t2 = (double*)malloc(sizeof(double) * n);
