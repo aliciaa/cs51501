@@ -28,7 +28,7 @@ void cg_core(const MKL_INT* , const MKL_INT* , const double* ,
              const double*  , double*        , double*       ,
              double*        , double*        , double*       ,
              MKL_INT        , MKL_INT        , int&          ,
-             double* );
+             double );
 
 /* implements CG linear solver with OpenMp */
 
