@@ -28,7 +28,7 @@ void cg_core(const MKL_INT* , const MKL_INT* , const double* ,
              const double*  , double*        , double*       ,
              double*        , double*        , double*       ,
              MKL_INT        , MKL_INT        , int&          ,
-             double* );
+             double );
 
 /* implements CG linear solver with OpenMp */
 
@@ -87,7 +87,7 @@ void linear_solver(
             Q1          , RHSwrt+n*j  , RHSCOPY+n*j , 
             WKSPACE1+n*j, WKSPACE2+n*j, solution+n*j, 
             n           , s           , its         ,
-            sig);
+            sig[j]);
   }
 
 #if CCCC==1
