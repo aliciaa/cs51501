@@ -100,14 +100,18 @@ int main(int argc, char *argv[])
   double  *AV = NULL,	              // values of the matrix A
           *BV = NULL,               // values of the matrix B
           *Y  = NULL,               // eigenvectors
-          *S  = NULL;               // eigenvalues
+          *S  = NULL,               // eigenvalues
+          *rnorms = NULL,           // residual column norms
+          *timing = NULL;           // timing
 
 	/*---------------------------------------------------------------------------
 	 * initialize MPI
 	 *---------------------------------------------------------------------------*/
+#if 1
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &task_id);
 	MPI_Comm_size(MPI_COMM_WORLD, &num_tasks);
+#endif
 
 	MKL_INT m;
 
@@ -118,7 +122,7 @@ int main(int argc, char *argv[])
 		if (!strcmp(argv[i], "-p")) p = atoi(argv[++i]);
 		if (!strcmp(argv[i], "-fA")) fileA = argv[++i];
 		if (!strcmp(argv[i], "-fB")) fileB = argv[++i];
-		if (!strcmp(argv[i], "-fC")) fileO = argv[++i];
+		if (!strcmp(argv[i], "-fO")) fileO = argv[++i];
 	}
 
 	/*---------------------------------------------------------------------------
@@ -161,7 +165,7 @@ int main(int argc, char *argv[])
 #endif
 
   if (error == 0) {
-    TraceMin1(n, num_eigs[task_id], CI, CJ, CV, BI, BJ, BV, Y, S);
+    TraceMin1(n, num_eigs[task_id], CI, CJ, CV, BI, BJ, BV, Y, S, rnorms, timing);
   }
 	
 	printf("Final eigenvalues: ");
@@ -169,6 +173,19 @@ int main(int argc, char *argv[])
 		printf("%12.10lf ", S[j] - mu);
 	}
 	printf("\n");
+
+  fp = fopen((fileO + "-" + std::to_string(task_id) + ".out").c_str(), "w");
+  if (fp) {
+    fprintf(fp, "timing:\ntotal        jacobi       jacobi_avg   qr           linear\n");
+    for (int j = 0; j < 5; ++j) {
+      fprintf(fp, "%12.10lf ", timing[j]);
+    }
+    fprintf(fp, "\n\neigenvalues   norms\n");
+    for (int j = 0; j < num_eigs[task_id]; ++j) {
+      fprintf(fp, "%12.10lf %12.10lf\n", S[j] - mu, rnorms[j]);
+    }
+    fclose(fp);
+  }
 
 	MPI_Finalize();
   
@@ -183,6 +200,8 @@ int main(int argc, char *argv[])
   if (CI != NULL) delete [] CI;
   if (CJ != NULL) delete [] CJ;
   if (CV != NULL) delete [] CV;
+  if (rnorms != NULL) delete [] rnorms;
+  if (timing != NULL) delete [] timing;
 
   return 0;
 }

@@ -1,5 +1,21 @@
 \subsection{Basic Trace Minimization Algorithm}
 
+\begin{algorithm}[h]
+	\SetArgSty{}
+	\SetKwProg{Proc}{}{ :}{}
+	\KwIn{Subspace dimension $s = 2p$,\newline
+				 $V_1 \in \mathbb{R}^{n \times s}$ with rank $s$,\newline
+				 $A = A^T; B$ is symmetric positive definite
+	}
+	\KwOut{The smallest $p$ eigenvalues and their corresponding eigenpairs}
+	\For{$k = 1 \rightarrow$ mat\_iter}{
+		\Proc{$B$-orthonormalize $V_k \rightarrow Z_k$}{
+			Compute $\hat{B} = BV_k$\;
+		}
+	}
+	\caption{Basic Trace Minimization}
+\end{algorithm}
+
 \subsection{Trace Minimization Algorithm with Deflation}
 
 \subsection{The Davidson-type Trace Minimization Algorithm}

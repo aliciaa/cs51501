@@ -26,6 +26,8 @@ static const char MAT_GXXF[6] = "GXXF";
  * @input B s.p.d. matrix B
  * @output Y eigenvectors of the system
  * @output S eigenvalues of the system
+ * @output rnorms residual column norms
+ * @output timing timing
  */
 void TraceMin1(const MKL_INT n,
 							 const MKL_INT p,
@@ -36,7 +38,9 @@ void TraceMin1(const MKL_INT n,
 							 const MKL_INT *B_j,
 							 const double *B_v,
                double *&Y,
-               double *&S)
+               double *&S,
+               double *&norms,
+               double *&timing)
 {
 	/*---------------------------------------------------------------------------
 	 * declaration of variables
@@ -45,6 +49,7 @@ void TraceMin1(const MKL_INT n,
 				 t_end;
 	double cg_start, cg_end, cg_total = 0.0;
 	double j_start, j_end, j_total = 0.0;
+	double qr_start, qr_end, qr_total = 0.0;
 	MKL_INT s = 2 * p,      								// dimension of the subspace
           info;                           // return values from LAPACK
 	int c = p,    							      			// number of converged columns
@@ -56,8 +61,7 @@ void TraceMin1(const MKL_INT n,
    * and the vectors MS, eigenvalues, norms and perm
 	 *---------------------------------------------------------------------------*/
 	MKL_INT *perm = new MKL_INT[s];		      // permuatation
-	double *norms = new double[p], 			  	// column norms
-         *V     = new double[n * s](),  	// the matrix V
+  double *V     = new double[n * s](),  	// the matrix V
          *BV    = new double[n * s],      // B * V
          *BZ    = new double[n * s],      // B * Z
          *BY    = new double[n * s],      // B * Y; also Q1 after QR factorization
@@ -74,6 +78,8 @@ void TraceMin1(const MKL_INT n,
 
   Y = new double[n * s];                  // eigenvectors
   S = new double[s];                      // eigenvalues
+	norms = new double[p];   			  	      // column norms
+  timing = new double[NUM_TIMINGS];       // timing
 
 	/*---------------------------------------------------------------------------
 	 * start the timer
@@ -190,8 +196,11 @@ void TraceMin1(const MKL_INT n,
 		/*---------------------------------------------------------------------------
 		 * Perform QR factorization of BY and get Q1
 		 *---------------------------------------------------------------------------*/
+    qr_start = omp_get_wtime();
     LAPACKE_dgeqrf(LAPACK_COL_MAJOR, n, s, BY, n, tau);
     LAPACKE_dorgqr(LAPACK_COL_MAJOR, n, s, s, BY, n, tau);
+    qr_end = omp_get_wtime();
+    qr_total += qr_end - qr_start;
 
 		/*---------------------------------------------------------------------------
 		 * Compute the right-hand-side of the reduced system
@@ -227,7 +236,14 @@ void TraceMin1(const MKL_INT n,
 	printf("Total iter = %d\n", k);
 	printf("Total time = %.6lf\n", t_end - t_start);
 	printf("Jacobi time = %.6lf (average = %.6lf)\n", j_total, j_total / (2 * k));
+	printf("QR time = %.6lf\n", qr_total);
 	printf("Linear time = %.6lf\n", cg_total);
+
+  timing[0] = t_end - t_start;
+  timing[1] = j_total;
+  timing[2] = j_total / (2 * k);
+  timing[3] = qr_total;
+  timing[4] = cg_total;
 
 	/*---------------------------------------------------------------------------
 	 * deallocate the matrices and vectors
@@ -245,7 +261,6 @@ void TraceMin1(const MKL_INT n,
   delete [] R;
   delete [] MS;
   delete [] orders;
-  delete [] norms;
   delete [] tau;
   delete [] perm;
 }

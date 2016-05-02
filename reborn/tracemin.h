@@ -3,6 +3,8 @@
 
 #include <mkl_types.h>
 
+#define NUM_TIMINGS 5
+
 /* Trace Minimization for finding the smallest p eigenpairs of the generalized eigenvalue problem:
  * 		AY = BY * diag(S)
  * @input n size of the system
@@ -11,6 +13,8 @@
  * @input B s.p.d. matrix B
  * @output Y eigenvectors of the system
  * @output S eigenvalues of the system
+ * @output rnorms residual column norms
+ * @output timing timing
  */
 void TraceMin1(const MKL_INT n,
 							 const MKL_INT p,
@@ -21,6 +25,8 @@ void TraceMin1(const MKL_INT n,
 							 const MKL_INT *BJ,
 							 const double *BV,
                double *&Y,
-               double *&S);
+               double *&S,
+               double *&rnorms,
+               double *&timing);
 
 #endif // TRACE_MIN
