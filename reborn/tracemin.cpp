@@ -6,6 +6,7 @@
 #include <mkl_scalapack.h>
 #include <omp.h>
 #include <cstdio>
+#include <cstring>
 
 #define EIGEN_CONVERGENCE_TOL 1.e-5
 #define MAX_NUM_ITER 1000
@@ -48,9 +49,7 @@ void TraceMin1(const MKL_INT n,
 	int c = p,    										// number of converged columns
 	    w;							    					// width of the matrix orders
 	int *orders = NULL;	    					// order of annihilation
-	MKL_INT	*idx    = NULL,           // array of indices
-					*perm   = NULL,						// permuatation
-          *col    = NULL;	  				// index set for column
+	MKL_INT *perm   = NULL;						// permuatation
 	double *norms   = NULL, 				  // column norms
          *V       = NULL,						// the matrix V
          *BV      = NULL,
@@ -59,8 +58,6 @@ void TraceMin1(const MKL_INT n,
          *AZ      = NULL,
          *AY      = NULL,
          *M       = NULL,
-         *N       = NULL,
-         *X       = NULL,
          *U       = NULL,
          *W       = NULL,
          *Z       = NULL,
@@ -69,7 +66,7 @@ void TraceMin1(const MKL_INT n,
          *tau     = NULL;
 
 	/*---------------------------------------------------------------------------
-	 * create the matries V, BV, BZ, BY, M, N, X, XP, U, W, Z, AZ, AY, Y, R, T
+	 * create the matries V, BV, BZ, BY, M, X, XP, U, W, Z, AZ, AY, Y, R, T
    * and the vectors MS, eigenvalues, norms and perm
 	 *---------------------------------------------------------------------------*/
   V     = new double[n * s]();
@@ -77,8 +74,6 @@ void TraceMin1(const MKL_INT n,
   BZ    = new double[n * s];
   BY    = new double[n * s];
   M     = new double[s * s];
-  N     = new double[s * s];
-  X     = new double[s * s];
   U     = new double[s * s];
   W     = new double[n * s];
   Z     = new double[n * s];
@@ -103,7 +98,6 @@ void TraceMin1(const MKL_INT n,
 	for (int i = 0; i < n; ++i) {
     V[(i % s) * n + i] = 1.0;
 	}
-	//double*View(V, PETSC_VIEWER_STDOUT_SELF);
 
 	/*---------------------------------------------------------------------------
 	 * generate the order of annihiliation
@@ -127,9 +121,9 @@ void TraceMin1(const MKL_INT n,
 
 		/*---------------------------------------------------------------------------
 		 * MS = S^{-1/2}
-		 * X = X * M
-		 * BY = BV * X
-		 * Z = V * X
+		 * M = M * MS
+		 * BY = BV * M
+		 * Z = V * M
 		 * AZ = A * Z 
 		 * M = Z^T * AZ
 		 *---------------------------------------------------------------------------*/
@@ -146,14 +140,13 @@ void TraceMin1(const MKL_INT n,
 		 * Perform eigen decomposition
 		 *---------------------------------------------------------------------------*/
     j_start = omp_get_wtime();
+		//Jacobi1(orders, s, w, M, S, false);
 		Jacobi2(orders, s, w, M, S);
     j_end = omp_get_wtime();
     j_total += j_end - j_start;
 	
 #if 0
-    if (k == 2) {
-      ViewDense("M", s, s, M);
-    }
+    ViewDense("S", 1, s, S);
 #endif
 		/*---------------------------------------------------------------------------
 		 * Sort the eigenvalues and get the permuation
@@ -176,7 +169,7 @@ void TraceMin1(const MKL_INT n,
 		/*---------------------------------------------------------------------------
 		 * R = AY - BY * M
 		 *---------------------------------------------------------------------------*/
-    cblas_dcopy(n * s, BY, 1, R, 1);
+    memcpy(R, BY, n * p * sizeof(double));
 
 #if 0
     if (k == 2) {
@@ -185,19 +178,17 @@ void TraceMin1(const MKL_INT n,
     }
 #endif
 
-    for (int j = 0; j < s; ++j) {
+    for (int j = 0; j < p; ++j) {
       cblas_dscal(n, S[j], R + j*n, 1);
     }
-    cblas_daxpy(n * s, -1.0, AY, 1, R, 1);
+    cblas_daxpy(n * p, -1.0, AY, 1, R, 1);
 
 		/*---------------------------------------------------------------------------
 		 * Test for convergence
 		 *---------------------------------------------------------------------------*/
+		c = 0;
     for (int j = 0; j < p; ++j) {
       norms[j] = cblas_dnrm2(n, R + j*n, 1);
-    }
-		c = 0;
-		for (int j = 0; j < p; ++j) {
 			if (norms[j] <= EIGEN_CONVERGENCE_TOL * MS[j]) ++c;
 		}
 		if (k % 20 == 0) {
@@ -233,7 +224,7 @@ void TraceMin1(const MKL_INT n,
 		 * CG / MINRES
 		 *---------------------------------------------------------------------------*/
     cg_start = omp_get_wtime();
-    linear_solver(A_i, A_j, A_v, BY, AY, V, n, s, S);
+    linear_solver(A_i, A_j, A_v, BY, AY, V, n, s);
     cg_end = omp_get_wtime();
     cg_total += cg_end - cg_start;
     
@@ -258,8 +249,6 @@ void TraceMin1(const MKL_INT n,
   if (BZ     != NULL) delete [] BZ;
   if (BY     != NULL) delete [] BY;
   if (M      != NULL) delete [] M;
-  if (N      != NULL) delete [] N;
-  if (X      != NULL) delete [] X;
   if (U      != NULL) delete [] U;
   if (W      != NULL) delete [] W;
   if (Z      != NULL) delete [] Z;
