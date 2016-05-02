@@ -1,1 +1,18 @@
-Introduction here
+The generalized eigenvalue problem
+\begin{equation}
+	Ax = \lambda B x,\label{eq:eig}
+\end{equation}
+where $A$ and $B$ are $n \times n$ real symmetric matrices with $B$ being positive definite, arises in many
+applications\cite{klinvex}. Usually $A$ and $B$ are large and sparse and we need only the smallest
+few or the largest few, or the eigenvalues within an interval. In this project, we implement the trace minimization
+algorithms that can be used to solve these eigenvalue problems to obtain the smallest $p$ eigenvalues and their
+corresponding eigenvectors, or all the eigenpairs within a given interval $[a, b]$.
+
+This report is organized as follows. Section~\ref{sec:algorithms} presents a brief deivation of the basic trace
+minimization algortihm and its composite procedures, and the variations of the trace minimization algorithm, namely
+trace minimization algorithm with deflation and the Davidson-type trace minimization algorithm.
+Section~\ref{sec:implementation} describes the implementation details of the algorithm: the eigen decomposition
+methods for dense matrices for solving the eigenvalue problem within a subspace; the iterative solvers used in
+solving the reduced system, particularly the variation of conjugate gradient method used in the algorithm and its
+stopping criterion; and also the multisectioning technique to subdivide an interval into subintervals for parallel
+computations. Section~\ref{sec:results} shows our experimental results and discusses about the findings.

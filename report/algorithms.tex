@@ -1,0 +1,63 @@
+\label{sec:algorithms}
+The trace minimization algorithm is motivated by the following theorem.
+\begin{theorem}[Sameh and Wisniewski\cite{sameh1982}]
+	Let $A$ and $B$ be as given in problem \ref{eq:eig}; and let $X*$ be the set of all $n \times p$ matrices $X$ for
+	which $X^T B X = I_p, 1 \le p \le n$. Then
+	\begin{equation}
+		\min_{X \in X*} tr(X^T A X) = \sum_{i=1}^p \lambda_i,
+	\end{equation}
+	wher $\lambda_1 \le \lambda_2 \le \cdots \le \lambda_n$ are the eigenvalues of problem \ref{eq:eig}. The equality
+	holds if and only if the columns of the matrix $X$, which achieves the minimum, span the eigenspace corresponding
+	to the smallest $p$ eigenvalues.
+\end{theorem}
+Hence, if we could find such $X$ that minimizes the trace, we would obtain the smallest $p$ eigenpairs. In the
+trace minimization algorithm, we start with a random $X$ in the subspace and iteratively refine it by computing a
+correction term $\Delta$ until the trace is minimized.
+
+\subsection{Basic Trace Minimization Algorithm}
+
+\begin{algorithm}[htb]
+	\SetArgSty{}
+	\SetKwProg{Proc}{}{ :}{}
+	\KwIn{Subspace dimension $s = 2p$,\newline
+				 $V_1 \in \mathbb{R}^{n \times s}$ with rank $s$,\newline
+				 $A = A^T; B$ is symmetric positive definite
+	}
+	\KwOut{The smallest $p$ eigenvalues ($\Theta_k$) and their corresponding eigenvectors ($Y_k$)}
+	\For{$k = 1 \rightarrow$ mat\_iter}{
+		\Proc{$B$-orthonormalize $V_k \rightarrow Z_k$}{
+			Compute $\hat{B}_k = BV_k$\;
+			Compute all eigenpairs of $V_k^T B V_k$, $V_k^T \hat{B}_k = \Upsilon_k \Sigma_k \Upsilon_k^T$\;
+			Compute $Z_k = V_k \Upsilon_k \Sigma_k^{-1/2}$\;
+			Compute $\dot{B}_k = \hat{B}_k \Upsilon_k \Sigma_k^{-1/2}$\;
+		}
+		\Proc{Perform the Rayleigh-Ritz procedure to obtain the Ritz eigenpairs ($AY_k \approx BY_k\Theta_k$)}{
+			Compute $\hat{A}_k = AV_k \Upsilon_k \Sigma_k^{-1/2}$\;
+			Compute all eigenpairs of $Z_k^T A Z_k$, $Z_k^T \hat{A}_k = \Pi_k \Theta_k \Pi_k^T$\;
+			Sort the eigenpairs ($\Theta_k, \Pi_k$) in assending order of $\Theta_k$\;
+			Compute $\ddot{B}_k = \dot{B}_k \Pi_k$\;
+			Compute $\dot{A}_k = \hat{A}_k \Pi_k$\;
+		}
+		Compute the first $p$ columns of the residual vectors $\Phi_k = \dot{A} - \ddot{B}\Theta_k$\;
+		\Proc{Test for convergence}{
+			$c = 0$\;
+			\For{$j = 1 \rightarrow p$}{
+				\lIf{$\|\Phi_k e_j\|_2 / \theta_j \le \tau$}{$c = c + 1$}
+			}
+			\lIf{$c \ge p$}{\KwSty{break}}
+		}
+		\Proc{Solve the reduced system $P_k A \Delta_k = P_k A Y_k$ where $P_k = I - B Y_k \left(Y_k^T B^2 Y_k\right)^{-1}Y_k^T B$}{
+			Compute the QR decomposition of $BY_k$, $\ddot{B}_k = \left[Q_{k1}\ Q_{k2}\right]\left[R_k^T\ 0\right]^T$\;
+			Compute $N_k = \left(I - Q_{k1}Q_{k1}^T\right) \dot{A}_k$\;
+			Use conjugate gradient or minimum residual method to solve $\left(I - Q_{k1}Q_{k1}^T\right) A \Delta_k = N_k$
+				with initial guess $\Delta_k = 0$\;
+		}
+		Compute $V_{k+1} = Y_k - \Delta_k$\;
+	}
+	\caption{Basic Trace Minimization}\label{alg:basic}
+\end{algorithm}
+
+\subsection{Trace Minimization Algorithm with Deflation}
+
+\subsection{The Davidson-type Trace Minimization Algorithm}
+
