@@ -9,8 +9,8 @@
 #include <cstring>
 
 #define EIGEN_CONVERGENCE_TOL 1.e-5
-#define MAX_NUM_ITER 1000
-
+#define MAX_NUM_ITER 5000
+#define PACE 100
 static const char NTRANSA = 'N',
                   TRANSA = 'T',
                   INCREASING = 'I';
@@ -213,7 +213,7 @@ void TraceMin1(const MKL_INT n,
         ++c;
       }
     }
-    if (k % 20 == 0) {
+    if (k % PACE == 0) {
       printf("Iter[%d] : Number of converged columns = %lld\n", k, c);
       for (int j = 0; j < p; ++j) {
         printf("norms[%d]=%.10lf, ev[%d]=%.10lf\n", j, norms[j], j, MS[j]);
