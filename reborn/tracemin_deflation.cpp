@@ -8,8 +8,9 @@
 #include <cstdio>
 #include <cstring>
 
-#define EIGEN_CONVERGENCE_TOL 1.e-5
-#define MAX_NUM_ITER 1000
+#define EIGEN_CONVERGENCE_TOL 1.e-4
+#define MAX_NUM_ITER 10000
+#define PACE 100
 
 static const char NTRANSA = 'N',
                   TRANSA = 'T',
@@ -82,12 +83,6 @@ void TraceMin1(const MKL_INT n,
   Y = new double[n * p];                  // eigenvectors
   S = new double[p];                      // eigenvalues
 
-	/*---------------------------------------------------------------------------
-	 * create the matries V, BV, BZ, BY, M, N, X, XP, U, W, Z, AZ, AY, Y, R, T
-   * and the vectors MS, eigenvalues, norms and perm
-	 *---------------------------------------------------------------------------*/
-  perm  = new MKL_INT[s];
-  
   /*---------------------------------------------------------------------------
    * start the timer
    *---------------------------------------------------------------------------*/
@@ -213,13 +208,13 @@ void TraceMin1(const MKL_INT n,
         ++c;
       }
     }
-    if (k % 20 == 0) {
+    if (k % PACE == 0) {
       printf("Iter[%d] : Number of converged columns = %lld\n", k, c);
       for (int j = 0; j < p; ++j) {
         printf("norms[%d]=%.10lf, ev[%d]=%.10lf\n", j, norms[j], j, MS[j]);
       }
     }
-    if (c == p) break;
+    if (c >= p) break;
 
     /*---------------------------------------------------------------------------
      * if more columns have been converged, need new projection matrix for BC
