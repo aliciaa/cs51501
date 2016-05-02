@@ -1,5 +1,0 @@
-#### tracemin CG template files
-
-
-
-

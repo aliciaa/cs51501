@@ -4,7 +4,7 @@
 #include "tracemin_cg_q1.h"
 #include <omp.h>
 
-#define EIGEN_CONVERGENCE_TOL 1.e-7
+#define EIGEN_CONVERGENCE_TOL 1.e-5
 #define MAX_NUM_ITER 1000
 #define PRINT_GAPS 30
 
@@ -38,8 +38,9 @@ void TraceMin1(int task_id,
 	PetscInt *orders,									// order of annihilation
 					 *idx,										// array of indices
 					 *perm;										// permuatation
-	PetscReal *eigenvalues,						// list of eigenvalues
+	PetscReal *eigenvalues,						// list of eigenvaluesA
 						*norms;									// column norms
+	PetscReal *abs_eigenvalues;
 	Mat V,														// the matrix V
 			BV,
 			BZ,
@@ -92,6 +93,7 @@ void TraceMin1(int task_id,
 	 * allocate memory for arrays for eigenvalues and permutation
 	 *---------------------------------------------------------------------------*/
 	PetscMalloc1(s, &eigenvalues);
+	PetscMalloc1(s, &abs_eigenvalues);
 	PetscMalloc1(s, &norms);
 	PetscMalloc1(s, &perm);
 
@@ -164,13 +166,16 @@ void TraceMin1(int task_id,
 		 * Sort the eigenvalues and get the permuation
 		 *---------------------------------------------------------------------------*/
 		VecCopy(S, MS);
-		VecAbs(MS);
+		//VecAbs(MS);
 		for (PetscInt r = 0; r < s; ++r) {
 			perm[r] = r;
 		}
 		VecGetValues(MS, s, perm, eigenvalues);
-		PetscSortRealWithPermutation(s, eigenvalues, perm);
-		PetscSortReal(s, eigenvalues);
+		for (PetscInt r = 0; r < s; ++r) {
+		  abs_eigenvalues[r] = fabs(eigenvalues[r]);
+		}
+		PetscSortRealWithPermutation(s, abs_eigenvalues, perm);
+		PetscSortReal(s, abs_eigenvalues);
 		ISCreateGeneral(PETSC_COMM_SELF, s, perm, PETSC_COPY_VALUES, &col);
 		/*---------------------------------------------------------------------------
 		 * Permute X and postmultiply Z, BZ and AZ by X
@@ -187,9 +192,18 @@ void TraceMin1(int task_id,
 		MatMatMult(AZ, N, MAT_REUSE_MATRIX, PETSC_DEFAULT, &AY);
 		MatMatMult(Z, N, MAT_REUSE_MATRIX, PETSC_DEFAULT, &Y);
 		
+
 		VecPermute(S, col, PETSC_FALSE);
 		ISDestroy(&col);
-		
+		for (PetscInt r = 0; r < s; ++r) {
+			perm[r] = r;
+		}
+		VecGetValues(S, s, perm, eigenvalues);
+		/*
+		for (PetscInt r = 0; r < s; ++r) {
+		  PetscPrintf(PETSC_COMM_WORLD, "eigen[%d] = %.8\lf -> abs_eigen[%d] = %.8lf\n", r, eigenvalues[r], r, abs_eigenvalues[r]);
+		}
+		*/
 //		PetscPrintf(PETSC_COMM_SELF, "Y:\n");
 //    MatView(Y, PETSC_VIEWER_STDOUT_SELF);
 
@@ -210,17 +224,20 @@ void TraceMin1(int task_id,
 		/*---------------------------------------------------------------------------
 		 * Test for convergence
 		 *---------------------------------------------------------------------------*/
+		PetscScalar tr;
+		MatGetTrace(M, &tr);
 		MatGetColumnNorms(R, NORM_2, norms);
 		c = p;
 		double sn = 0.0;
 		//VecView(S, PETSC_VIEWER_STDOUT_SELF);
 		for (PetscInt r = 0; r < p; ++r) {
-		  if (norms[r] <= EIGEN_CONVERGENCE_TOL * eigenvalues[r]) --c;
-			//PetscPrintf(PETSC_COMM_SELF, "norm[%d]=%.10lf\n", r, norms[r]);
-	          sn += norms[r]/ eigenvalues[r];
+		  if (norms[r] <= EIGEN_CONVERGENCE_TOL * abs_eigenvalues[r]
+		      || norms[r] <= EIGEN_CONVERGENCE_TOL) --c;
+	          //PetscPrintf(PETSC_COMM_SELF, "norm[%d]=%.8lf, eigenvalues[%d]=%.8lf\n", r, norms[r], r, eigenvalues[r]);
+	          sn += norms[r]/ fabs(eigenvalues[r]);
 		}
 		if (k % PRINT_GAPS == 0) {
-		  PetscPrintf(PETSC_COMM_SELF, "Task[%d] : Iter[%d] Unconverged = %d, L1-res norm = %.8lf\n", task_id, k, c, sn);
+		  PetscPrintf(PETSC_COMM_SELF, "Task[%d] : Iter[%d] Unconverged = %d, L1-res norm = %.8lf, curr_tr = %.8lf\n", task_id, k, c, sn, tr);
 		}
 		if (c == 0) break;
 		
@@ -274,6 +291,9 @@ void TraceMin1(int task_id,
 	PetscPrintf(PETSC_COMM_SELF, "Task[%d] : Total time = %.6lf\n", task_id, t_end - t_start);
 	PetscPrintf(PETSC_COMM_SELF, "Task[%d] : Linear time = %.6lf\n", task_id, cg_total);
         MatView(Y, viewer);
+	for (PetscInt r = 0; r < s; ++r) {
+	  PetscPrintf(PETSC_COMM_WORLD, "final eigen[%d] = %.8lf\n", r, eigenvalues[r]);
+	}
 	VecView(S, viewer);
 	PetscViewerDestroy(&viewer);
 #if 0
