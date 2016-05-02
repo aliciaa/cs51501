@@ -51,54 +51,41 @@ void TraceMin1(const MKL_INT n,
 	    w;							    					// width of the matrix orders
 	int *orders = NULL;	    					// order of annihilation
   bool converged = false;           // more converged columns in previous iteration?
-	MKL_INT	*perm   = NULL;						// permuatation
-	double *norms   = NULL, 				  // column norms
-         *V       = NULL,						// the matrix V
-         *BV      = NULL,
-         *BZ      = NULL,
-         *AZ      = NULL,
-         *AY      = NULL,
-         *M       = NULL,
-         *U       = NULL,
-         *W       = NULL,
-         *Z       = NULL,
-         *R       = NULL,
-         *BC      = NULL,
-         *PBC     = NULL,
-         *BCU     = NULL,
-         *BCW     = NULL,
-         *YC      = NULL,
-         *BYC     = NULL,
-         *MS      = NULL,						// the magnitude of S
-         *TS      = NULL,						// calculated S
-         *tau     = NULL;
+  
+  /*---------------------------------------------------------------------------
+	 * create the matries V, BV, BZ, BY, M, X, XP, U, W, Z, AZ, AY, Y, R, T
+   * and the vectors MS, eigenvalues, norms and perm
+	 *---------------------------------------------------------------------------*/
+	MKL_INT *perm = new MKL_INT[s];		      // permuatation
+	double *norms = new double[p], 			  	// column norms
+         *V     = new double[n * s](),  	// the matrix V
+         *BV    = new double[n * s],      // B * V
+         *BZ    = new double[n * s],      // B * Z
+         *BY    = new double[n * s],      // B * Y; also Q1 after QR factorization
+         *AZ    = new double[n * s],      // A * Z
+         *AY    = new double[n * s],      // A * Y; also the RHS after projection
+         *M     = new double[s * s],      // V^T * B * V or Z^T * A * Z; also eigenvectors
+         *U     = new double[(s + p) * s],// Q1[BYC]^T * AY
+         *W     = new double[n * s],      // Q1[BYC] * U
+         *Z     = new double[n * s],      // V * M after eigen decomposition
+         *R     = new double[n * p],      // AY - BY * S
+         *BC    = new double[n * p],      // B * C
+         *PBC   = new double[n * p],      // P * BC
+         *BCU   = new double[p * s],      // Q1[BC]^T * V
+         *BCW   = new double[n * s],      // Q1[BC] * BCU
+         *YC    = new double[n * (s + p)],// [Y C]
+         *BYC   = new double[n * (s + p)],// B * [Y C]
+         *MS    = new double[s],          // the magnitude of S
+         *TS    = new double[s],          // Ritz values; approximate eigenvalues
+         *tau   = new double[s + p];      // workspace for QR factorization
+
+  Y = new double[n * p];                  // eigenvectors
+  S = new double[p];                      // eigenvalues
 
 	/*---------------------------------------------------------------------------
 	 * create the matries V, BV, BZ, BY, M, N, X, XP, U, W, Z, AZ, AY, Y, R, T
    * and the vectors MS, eigenvalues, norms and perm
 	 *---------------------------------------------------------------------------*/
-  V     = new double[n * s]();
-  BV    = new double[n * s];
-  BZ    = new double[n * s];
-  M     = new double[s * s];
-  U     = new double[(s + p) * s];
-  W     = new double[n * s];
-  Z     = new double[n * s];
-  AZ    = new double[n * s];
-  AY    = new double[n * s];
-  R     = new double[n * s];
-  BC    = new double[n * p];
-  PBC   = new double[n * p];
-  BCU   = new double[p * s];
-  BCW   = new double[n * s];
-  YC    = new double[n * (s + p)];
-  BYC   = new double[n * (s + p)];
-  Y     = new double[n * p];
-  S     = new double[p];
-  TS    = new double[s];
-  MS    = new double[s];
-  norms = new double[p];
-  tau   = new double[s + p];
   perm  = new MKL_INT[s];
   
   /*---------------------------------------------------------------------------
@@ -294,32 +281,32 @@ void TraceMin1(const MKL_INT n,
   /*---------------------------------------------------------------------------
    * copy back the vector
    *---------------------------------------------------------------------------*/
-  cblas_dcopy(n*p, YC + s*n, 1, Y, 1);
+  memcpy(Y, YC + s*n, n * p * sizeof(double));
 
 	/*---------------------------------------------------------------------------
 	 * deallocate the matrices and vectors
 	 *---------------------------------------------------------------------------*/
-  if (V      != NULL) delete [] V;
-  if (BV     != NULL) delete [] BV;
-  if (BZ     != NULL) delete [] BZ;
-  if (M      != NULL) delete [] M;
-  if (U      != NULL) delete [] U;
-  if (W      != NULL) delete [] W;
-  if (Z      != NULL) delete [] Z;
-  if (AZ     != NULL) delete [] AZ;
-  if (AY     != NULL) delete [] AY;
-  if (R      != NULL) delete [] R;
-  if (BC     != NULL) delete [] BC;
-  if (PBC    != NULL) delete [] PBC;
-  if (BCU    != NULL) delete [] BCU;
-  if (BCW    != NULL) delete [] BCW;
-  if (YC     != NULL) delete [] YC;
-  if (BYC    != NULL) delete [] BYC;
-  if (TS     != NULL) delete [] TS;
-  if (MS     != NULL) delete [] MS;
-  if (orders != NULL) delete [] orders;
-  if (norms  != NULL) delete [] norms;
-  if (tau    != NULL) delete [] tau;
-  if (perm   != NULL) delete [] perm;
+  delete [] V;
+  delete [] BV;
+  delete [] BZ;
+  delete [] M;
+  delete [] U;
+  delete [] W;
+  delete [] Z;
+  delete [] AZ;
+  delete [] AY;
+  delete [] R;
+  delete [] BC;
+  delete [] PBC;
+  delete [] BCU;
+  delete [] BCW;
+  delete [] YC;
+  delete [] BYC;
+  delete [] TS;
+  delete [] MS;
+  delete [] orders;
+  delete [] norms;
+  delete [] tau;
+  delete [] perm;
 }
 

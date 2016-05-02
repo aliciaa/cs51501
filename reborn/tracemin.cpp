@@ -44,48 +44,35 @@ void TraceMin1(const MKL_INT n,
 				 t_end;
 	double cg_start, cg_end, cg_total = 0.0;
 	double j_start, j_end, j_total = 0.0;
-	MKL_INT s = 2 * p,								// dimension of the subspace
-          info;
-	int c = p,    										// number of converged columns
-	    w;							    					// width of the matrix orders
-	int *orders = NULL;	    					// order of annihilation
-	MKL_INT *perm   = NULL;						// permuatation
-	double *norms   = NULL, 				  // column norms
-         *V       = NULL,						// the matrix V
-         *BV      = NULL,
-         *BZ      = NULL,
-         *BY      = NULL,
-         *AZ      = NULL,
-         *AY      = NULL,
-         *M       = NULL,
-         *U       = NULL,
-         *W       = NULL,
-         *Z       = NULL,
-         *R       = NULL,
-         *MS      = NULL,						// the magnitude of S
-         *tau     = NULL;
-
-	/*---------------------------------------------------------------------------
+	MKL_INT s = 2 * p,      								// dimension of the subspace
+          info;                           // return values from LAPACK
+	int c = p,    							      			// number of converged columns
+	    w;							    	      				// width of the matrix orders
+	int *orders = NULL;	    		      			// order of annihilation
+	
+  /*---------------------------------------------------------------------------
 	 * create the matries V, BV, BZ, BY, M, X, XP, U, W, Z, AZ, AY, Y, R, T
    * and the vectors MS, eigenvalues, norms and perm
 	 *---------------------------------------------------------------------------*/
-  V     = new double[n * s]();
-  BV    = new double[n * s];
-  BZ    = new double[n * s];
-  BY    = new double[n * s];
-  M     = new double[s * s];
-  U     = new double[s * s];
-  W     = new double[n * s];
-  Z     = new double[n * s];
-  AZ    = new double[n * s];
-  AY    = new double[n * s];
-  Y     = new double[n * s];
-  R     = new double[n * s];
-  S     = new double[s];
-  MS    = new double[s];
-  norms = new double[p];
-  tau   = new double[s];
-  perm  = new MKL_INT[s];
+	MKL_INT *perm = new MKL_INT[s];		      // permuatation
+	double *norms = new double[p], 			  	// column norms
+         *V     = new double[n * s](),  	// the matrix V
+         *BV    = new double[n * s],      // B * V
+         *BZ    = new double[n * s],      // B * Z
+         *BY    = new double[n * s],      // B * Y; also Q1 after QR factorization
+         *AZ    = new double[n * s],      // A * Z
+         *AY    = new double[n * s],      // A * Y; also the RHS after projection
+         *M     = new double[s * s],      // V^T * B * V or Z^T * A * Z; also eigenvectors
+         *U     = new double[s * s],      // Q1^T * AY
+         *W     = new double[n * s],      // Q1 * U
+         *Z     = new double[n * s],      // V * M after eigen decomposition
+         *R     = new double[n * p],      // AY - BY * S
+         *MS    = new double[s],          // the magnitude of S
+         *TS    = new double[s],          // Ritz values; approximate eigenvalues
+         *tau   = new double[s];          // workspace for QR factorization
+
+  Y = new double[n * s];                  // eigenvectors
+  S = new double[s];                      // eigenvalues
 
 	/*---------------------------------------------------------------------------
 	 * start the timer
@@ -103,7 +90,7 @@ void TraceMin1(const MKL_INT n,
 	 * generate the order of annihiliation
 	 *---------------------------------------------------------------------------*/
 	GenerateAnnihilationOrder(s, w, orders);
-	//while (true) {
+  
   int k;
   for (k = 0; k < MAX_NUM_ITER; ++k) {
 		/*---------------------------------------------------------------------------
@@ -244,21 +231,21 @@ void TraceMin1(const MKL_INT n,
 	/*---------------------------------------------------------------------------
 	 * deallocate the matrices and vectors
 	 *---------------------------------------------------------------------------*/
-  if (V      != NULL) delete [] V;
-  if (BV     != NULL) delete [] BV;
-  if (BZ     != NULL) delete [] BZ;
-  if (BY     != NULL) delete [] BY;
-  if (M      != NULL) delete [] M;
-  if (U      != NULL) delete [] U;
-  if (W      != NULL) delete [] W;
-  if (Z      != NULL) delete [] Z;
-  if (AZ     != NULL) delete [] AZ;
-  if (AY     != NULL) delete [] AY;
-  if (R      != NULL) delete [] R;
-  if (MS     != NULL) delete [] MS;
-  if (orders != NULL) delete [] orders;
-  if (norms  != NULL) delete [] norms;
-  if (tau    != NULL) delete [] tau;
-  if (perm   != NULL) delete [] perm;
+  delete [] V;
+  delete [] BV;
+  delete [] BZ;
+  delete [] BY;
+  delete [] M;
+  delete [] U;
+  delete [] W;
+  delete [] Z;
+  delete [] AZ;
+  delete [] AY;
+  delete [] R;
+  delete [] MS;
+  delete [] orders;
+  delete [] norms;
+  delete [] tau;
+  delete [] perm;
 }
 
