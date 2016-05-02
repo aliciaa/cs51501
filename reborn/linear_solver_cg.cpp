@@ -16,9 +16,9 @@
 #include <cstdio>
 #include "mkl.h"
 
-#define CG_MAX_ITER 100
+#define CG_MAX_ITER 5000
 #define CCCC  0
-#define CONVERGENCETEST 0
+#define CONVERGENCETEST 1
 
 
 void i_qqax (const MKL_INT* , const MKL_INT* , const double* , 
@@ -115,13 +115,16 @@ void i_qqax(
     MKL_INT        n,
     MKL_INT        s) {
 
+
+  const char transa='N';
+  mkl_dcsrgemv(&transa, &n, va , ia, ja , X , Y );
   //sparse mat-vec
-  for(int i=0; i<n; i++){
-    Y[i]=0.0;
-    for(int jt=ia[i]; jt<ia[i+1]; jt++){
-      Y[i]+=X[ ja[jt-1]-1 ]*va[jt-1];
-    }
-  }
+  //for(int i=0; i<n; i++){
+  //  Y[i]=0.0;
+  //  for(int jt=ia[i]; jt<ia[i+1]; jt++){
+  //    Y[i]+=X[ ja[jt-1]-1 ]*va[jt-1];
+  //  }
+  //}
 
   cblas_dgemv(CblasColMajor, CblasTrans  , n,s, 1.0,Q, n, Y   , 1, 0,QtAX, 1);
   cblas_dgemv(CblasColMajor, CblasNoTrans, n,s,-1.0,Q, n, QtAX, 1, 1,Y   , 1);

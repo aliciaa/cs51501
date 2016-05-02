@@ -8,8 +8,9 @@
 #include <cstdio>
 #include <cstring>
 
-#define EIGEN_CONVERGENCE_TOL 1.e-5
-#define MAX_NUM_ITER 1000
+#define EIGEN_CONVERGENCE_TOL 1.e-4
+#define MAX_NUM_ITER 10000
+#define PACE 100
 
 static const char NTRANSA = 'N',
                   TRANSA = 'T',
@@ -178,13 +179,13 @@ void TraceMin1(const MKL_INT n,
       norms[j] = cblas_dnrm2(n, R + j*n, 1);
 			if (norms[j] <= EIGEN_CONVERGENCE_TOL * MS[j]) ++c;
 		}
-		if (k % 20 == 0) {
+		if (k % PACE == 0) {
 		  printf("Iter[%d] : Number of converged columns = %d\n", k, c);
       for (int j = 0; j < p; ++j) {
         printf("norms[%d]=%.10lf, ev[%d]=%.10lf\n", j, norms[j], j, S[j]);
       }
 		}
-		if (c == p) break;
+		if (c >= p) break;
 	
 		/*---------------------------------------------------------------------------
 		 * Perform QR factorization of BY and get Q1
