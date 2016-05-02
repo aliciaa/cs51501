@@ -6,6 +6,7 @@
 #include <mkl_scalapack.h>
 #include <omp.h>
 #include <cstdio>
+#include <cstring>
 
 #define EIGEN_CONVERGENCE_TOL 1.e-5
 #define MAX_NUM_ITER 1000
@@ -58,8 +59,6 @@ void TraceMin1(const MKL_INT n,
          *AZ      = NULL,
          *AY      = NULL,
          *M       = NULL,
-         *N       = NULL,
-         *X       = NULL,
          *U       = NULL,
          *W       = NULL,
          *Z       = NULL,
@@ -82,8 +81,6 @@ void TraceMin1(const MKL_INT n,
   BV    = new double[n * s];
   BZ    = new double[n * s];
   M     = new double[s * s];
-  N     = new double[s * s];
-  X     = new double[s * s];
   U     = new double[(s + p) * s];
   W     = new double[n * s];
   Z     = new double[n * s];
@@ -120,7 +117,7 @@ void TraceMin1(const MKL_INT n,
    * generate the order of annihiliation
    *---------------------------------------------------------------------------*/
   GenerateAnnihilationOrder(s, w, orders);
-  //while (true) {
+  
   int k;
   for (k = 0; k < MAX_NUM_ITER; ++k) {
     /*---------------------------------------------------------------------------
@@ -165,11 +162,13 @@ void TraceMin1(const MKL_INT n,
      * Perform eigen decomposition
      *---------------------------------------------------------------------------*/
     j_start = omp_get_wtime();
-    Jacobi2(orders, s, w, M, TS);
+		//Jacobi1(orders, s, w, M, TS, false);
+		Jacobi2(orders, s, w, M, TS);
     j_end = omp_get_wtime();
     j_total += j_end - j_start;
 
 #if 0
+    ViewDense("TS", 1, s, TS);
     ViewDense("M", s, s, M);
 #endif
     /*---------------------------------------------------------------------------
@@ -193,24 +192,24 @@ void TraceMin1(const MKL_INT n,
     /*---------------------------------------------------------------------------
      * R = AY - BY * M
      *---------------------------------------------------------------------------*/
-    cblas_dcopy(n*s, BYC, 1, R, 1);
+    uc = p - c;
+    memcpy(R, BYC, n * uc * sizeof(double));
 
 #if 0
     if (k == 2) {
-      ViewDense("R", n, s, R);
+      ViewDense("R", n, uc, R);
       return;
     }
 #endif
 
-    for (int j = 0; j < s; ++j) {
+    for (int j = 0; j < uc; ++j) {
       cblas_dscal(n, TS[j], R + j*n, 1);
     }
-    cblas_daxpy(n*s, -1.0, AY, 1, R, 1);
+    cblas_daxpy(n*uc, -1.0, AY, 1, R, 1);
 
     /*---------------------------------------------------------------------------
      * Test for convergence
      *---------------------------------------------------------------------------*/
-    uc = p - c;
     for (int j = 0; j < uc; ++j) {
       norms[j] = cblas_dnrm2(n, R + j*n, 1);
       /*---------------------------------------------------------------------------
@@ -219,7 +218,7 @@ void TraceMin1(const MKL_INT n,
        *---------------------------------------------------------------------------*/
       if (norms[j] <= EIGEN_CONVERGENCE_TOL * MS[j]) {
         converged = true;
-        cblas_dcopy(n, YC + j*n, 1, YC + (s+c)*n, 1);
+        memcpy(YC + (s+c)*n, YC + j*n, n * sizeof(double));
         for (int q = 0; q < n; ++q) {
           YC[j*n + q] = ((q-j)%s == 0) ? 1.0 : 0.0;
         }
@@ -228,7 +227,7 @@ void TraceMin1(const MKL_INT n,
       }
     }
     if (k % 20 == 0) {
-      printf("Iter[%d] : Number of converged columns = %d\n", k, c);
+      printf("Iter[%d] : Number of converged columns = %lld\n", k, c);
       for (int j = 0; j < p; ++j) {
         printf("norms[%d]=%.10lf, ev[%d]=%.10lf\n", j, norms[j], j, MS[j]);
       }
@@ -247,7 +246,7 @@ void TraceMin1(const MKL_INT n,
       /*---------------------------------------------------------------------------
        * Perform QR factorization of BC and get PBC
        *---------------------------------------------------------------------------*/
-      cblas_dcopy(n*c, BC, 1, PBC, 1);
+      memcpy(PBC, BC, n * c * sizeof(double));
       LAPACKE_dgeqrf(LAPACK_COL_MAJOR, n, c, PBC, n, tau);
       LAPACKE_dorgqr(LAPACK_COL_MAJOR, n, c, c, PBC, n, tau);
     }
@@ -256,7 +255,7 @@ void TraceMin1(const MKL_INT n,
      * If some columns have been converged, copy BC to BYC
      *---------------------------------------------------------------------------*/
     if (c != 0) {
-      cblas_dcopy(n*c, BC, 1, BYC + n*s, 1);
+      memcpy(BYC + n*s, BC, n * c * sizeof(double));
     }
     /*---------------------------------------------------------------------------
      * Perform QR factorization of BYC and get Q1
@@ -275,7 +274,7 @@ void TraceMin1(const MKL_INT n,
      * CG / MINRES
      *---------------------------------------------------------------------------*/
     cg_start = omp_get_wtime();
-    linear_solver(A_i, A_j, A_v, BYC, AY, V, n, s, TS);
+    linear_solver(A_i, A_j, A_v, BYC, AY, V, n, s);
     cg_end = omp_get_wtime();
     cg_total += cg_end - cg_start;
 
@@ -304,8 +303,6 @@ void TraceMin1(const MKL_INT n,
   if (BV     != NULL) delete [] BV;
   if (BZ     != NULL) delete [] BZ;
   if (M      != NULL) delete [] M;
-  if (N      != NULL) delete [] N;
-  if (X      != NULL) delete [] X;
   if (U      != NULL) delete [] U;
   if (W      != NULL) delete [] W;
   if (Z      != NULL) delete [] Z;
