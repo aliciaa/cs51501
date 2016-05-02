@@ -1,7 +1,27 @@
-Implementation here
 \subsection{Jacobian Decomposition (Yu Hong)}
+
 \subsection{Deflation and Davidson (Yu Hong)}
+
 \subsection{CG Linear Solver (Xin)}
+
 \subsection{Convergence Test (Xin)}
+
 \subsection{MinRes Linear Solver (Di)}
+We implemented the {\tt MinRes} linear solver as the class note described. The {\tt MinRes} linear solver works in the case when $A$ is not s.p.d, which is required in the multisection algorithm.  The flowchart of the algorithm is given in :
+\begin{algorithm}[h]
+	\SetArgSty{}
+	\SetKwProg{Proc}{}{ :}{}
+	\KwIn{$A$ a symmetric matryx, \newline
+		 $rhs$ the right hand side vector
+	}
+	\KwOut{Vector $x$ is the solution of $Ax = rhs$}
+	{$v_1 = rhs$\;}
+	\For{$k = 1 \rightarrow$ mat\_iter}{
+		\Proc{$B$-orthonormalize $V_k \rightarrow Z_k$}{
+			Compute $\hat{B} = BV_k$\;
+		}
+	}
+	\caption{Basic Trace Minimization}
+\end{algorithm}
+
 \subsection{MultiSection (Di)}
