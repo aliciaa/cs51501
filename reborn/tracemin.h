@@ -21,7 +21,6 @@ void TraceMin1(const MKL_INT n,
 							 const MKL_INT *BJ,
 							 const double *BV,
                double *&Y,
-               double *&S,
-	       double shift);
+               double *&S);
 
 #endif // TRACE_MIN

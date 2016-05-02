@@ -275,7 +275,7 @@ void TraceMin1(const MKL_INT n,
      * CG / MINRES
      *---------------------------------------------------------------------------*/
     cg_start = omp_get_wtime();
-    linear_solver(A_i, A_j, A_v, BYC, AY, V, n, s);
+    linear_solver(A_i, A_j, A_v, BYC, AY, V, n, s, TS);
     cg_end = omp_get_wtime();
     cg_total += cg_end - cg_start;
 

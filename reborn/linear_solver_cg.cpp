@@ -18,6 +18,8 @@
 
 #define CG_MAX_ITER 100
 #define CCCC  0
+#define CONVERGENCETEST 0
+
 
 void i_qqax (const MKL_INT* , const MKL_INT* , const double* , 
              const double*  , const double*  , double*       , 
@@ -25,7 +27,8 @@ void i_qqax (const MKL_INT* , const MKL_INT* , const double* ,
 void cg_core(const MKL_INT* , const MKL_INT* , const double* ,
              const double*  , double*        , double*       ,
              double*        , double*        , double*       ,
-             MKL_INT        , MKL_INT        , int&);
+             MKL_INT        , MKL_INT        , int&          ,
+             double );
 
 /* implements CG linear solver with OpenMp */
 
@@ -37,13 +40,33 @@ void linear_solver(
     const double*   RHS,         // n * s double, column major
     double*         solution,    // n * s double, column major
     MKL_INT         n,
-    MKL_INT         s) {
+    MKL_INT         s,
+    double*         sig) {
 
   int its;
   double  *RHSwrt   = new double [n*s];   //workspace of p in cg
   double  *RHSCOPY  = new double [n*s];  //workspace of p in cg
   double  *WKSPACE1 = new double [n*s]; //workspace of Ap in cg 
   double  *WKSPACE2 = new double [n*s]; //workspace of I-QQ'Ax in cg 
+
+
+
+#if CONVERGENCETEST==1
+  double lst = sig[s-1];
+  if( s<=1 || ((lst>=0)?lst:-lst)< 1e-7 ){
+    printf("Err! largest eigenvaluse is 0");
+    exit(1);
+  }
+#pragma omp parallel for
+  for(int i=0; i<s-1; i++){
+    sig[i]/=lst;
+    sig[i]*=sig[i];
+  }
+  sig[s-1]=sig[s-2];
+#endif
+
+
+
 
 #pragma omp parallel for
   for(int i=0; i<n*s; i++){
@@ -63,7 +86,8 @@ void linear_solver(
     cg_core(A_ia        ,   A_ja      , A_values    , 
             Q1          , RHSwrt+n*j  , RHSCOPY+n*j , 
             WKSPACE1+n*j, WKSPACE2+n*j, solution+n*j, 
-            n           , s           , its);
+            n           , s           , its         ,
+            sig[j]);
   }
 
 #if CCCC==1
@@ -126,7 +150,8 @@ void cg_core(
     double*        solution,
     MKL_INT        n,
     MKL_INT        s,
-    int            &itr_out
+    int            &itr_out,
+    double         sigsig
     ) {
 
   int    iter   = 0;
@@ -140,8 +165,13 @@ void cg_core(
   double alpha  = 0.0;
   double beta   = 1;
   double pAp    = 0.0;
-  
   rnorm = norm2(r,n);
+
+#if CONVERGENCETEST==1
+  double sigsigbb = 0.0;
+  sigsigbb = sigsig*rnorm*rnorm;
+#endif
+
   for(iter=1;  iter<=CG_MAX_ITER; iter++) {
     i_qqax(A_ia, A_ja, A_v, Q1, p, qqax, Ap, n, s);
     pAp = cblas_ddot(n, p, 1, Ap,1); 
@@ -153,10 +183,13 @@ void cg_core(
 
     cblas_daxpy (n, alpha, p, 1, x, 1);//upD x
     cblas_daxpy (n,-alpha,Ap, 1, r, 1);//upD r
-
     if( (rnorm2=norm2(r,n)) < 10e-6) {
       break;
     }
+#if CONVERGENCETEST==1
+    if( alpha*rnorm2*rnorm2 < sigsigbb )
+      break;
+#endif
     beta = (rnorm2*rnorm2)/rnorm/rnorm;
 
 #pragma omp parallel for
