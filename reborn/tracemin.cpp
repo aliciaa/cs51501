@@ -83,7 +83,7 @@ void TraceMin1(const MKL_INT n,
   R     = new double[n * s];
   S     = new double[s];
   MS    = new double[s];
-  norms = new double[s];
+  norms = new double[p];
   tau   = new double[s];
   perm  = new MKL_INT[s];
 
