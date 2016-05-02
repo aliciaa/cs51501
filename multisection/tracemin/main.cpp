@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
 //		MatView(B, PETSC_VIEWER_STDOUT_SELF);
         //A = A - u *B;
         MatAXPY(A, -(intervals[task_id] + intervals[task_id+1])/2, B, DIFFERENT_NONZERO_PATTERN);
+	//MatView(A, PETSC_VIEWER_STDOUT_WORLD);
 	TraceMin1(task_id, fileO, n, num_eigs[task_id], A, B, Y, S);
 
 	MatDestroy(&A);
@@ -89,6 +90,7 @@ int main(int argc, char *argv[])
 	/*---------------------------------------------------------------------------
 	 * finalize PETSc
 	 *---------------------------------------------------------------------------*/
+	MPI_Barrier(MPI_COMM_WORLD);
 	PetscFinalize();
         MPI_Finalize();
 	return 0;
