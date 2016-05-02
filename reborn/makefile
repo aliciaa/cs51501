@@ -14,7 +14,7 @@ COMPILE = mpiicpc
 INCLUDES = -I. -I${MKLROOT}/include
 
 # compile flags
-CCFLAGS = -DMKL_ILP64 -qopenmp -O3
+CCFLAGS = -DMKL_ILP64 -qopenmp -O3 --std=c++11
 
 # link flags
 LDFLAGS = ${MKLROOT}/lib/intel64/libmkl_scalapack_ilp64.a -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_ilp64.a -Wl,--end-group -lpthread -lm -liomp5
@@ -29,16 +29,13 @@ all: $(EXE)
 %.o : %.c
 	$(COMPILE) $(INCLUDES) $(CCFLAGS) -c $< -o $@
 
-#tracemin_deflation: main.o view.o matio.o mmio.o tracemin_deflation.o jacobi.o linear_solver_mres.o
-tracemin_deflation: main.o view.o matio.o mmio.o tracemin_deflation.o jacobi.o linear_solver_cg.o
+tracemin_deflation: main.o view.o matio.o mmio.o tracemin_deflation.o jacobi.o linear_solver_mres.o
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
-#only works with CG at this moment
 tracemin_davidson: main.o view.o matio.o mmio.o tracemin_davidson.o jacobi.o linear_solver_cg.o
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
-tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi.o linear_solver_mres.o
-#tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi.o linear_solver_cg.o
+tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi_o.o linear_solver_mres.o
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
 clean:
