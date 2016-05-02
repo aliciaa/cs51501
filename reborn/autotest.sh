@@ -4,7 +4,7 @@ MATRIX_B=${HOME}/cs51501/proj/testcases/B_100.mtx
 NPROC=1
 LOWER_BOUND=0
 UPPER_BOUND=1000
-TRACEMIN_PROG=tracemin
+TRACEMIN_PROG=tracemin_davidson
 MRES_OUTPUT=output.res
 
 #mpirun -np ${NPROC} ./../multisection/multisection ${MATRIX_A} ${MATRIX_B} ${LOWER_BOUND} ${UPPER_BOUND} ${NPROC}

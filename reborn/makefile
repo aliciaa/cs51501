@@ -33,11 +33,11 @@ tracemin_deflation: main.o view.o matio.o mmio.o tracemin_deflation.o jacobi.o l
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
 #only works with CG at this moment
-tracemin_davidson: main.o view.o matio.o mmio.o tracemin_davidson.o jacobi.o linear_solver_cg.o
+tracemin_davidson: main.o view.o matio.o mmio.o tracemin_davidson.o jacobi.o linear_solver_mres.o
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
 #tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi.o linear_solver_mres.o
-tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi.o linear_solver_cg.o
+tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi.o linear_solver_mres.o
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
 clean:

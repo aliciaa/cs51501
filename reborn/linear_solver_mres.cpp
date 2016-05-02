@@ -73,12 +73,11 @@ void csr_vec_mult(LINEAR_INT n,
   char c = 'N';
   mkl_dcsrgemv(&c, &n, A_values, A_ia, A_ja, v, Av);
 
-//void cblas_dgemv (const CBLAS_LAYOUT Layout, const CBLAS_TRANSPOSE trans, const MKL_INT m, const MKL_INT n, const double alpha, const double *a, const MKL_INT lda, const double *x, const MKL_INT incx, const double beta, double *y, const MKL_INT incy);
-
-  cblas_dgemv(CblasColMajor, CblasTrans, n, r, 1.0, Q1, n, Av, 1, 0, t1, 1);
-  cblas_dgemv(CblasColMajor, CblasNoTrans, n, r, 1.0, Q1, n, t1, 1, 0, t2, 1);
+  //cblas_dgemv(CblasColMajor, CblasTrans, n, r, 1.0, Q1, n, Av, 1, 0.0, t1, 1);
+  //cblas_dgemv(CblasColMajor, CblasNoTrans, n, r, 1.0, Q1, n, t1, 1, 0.0, t2, 1);
 
 #else
+
 #pragma omp parallel for
   for (LINEAR_INT i = 0; i < n; i++) {
     Av[i] = 0;
@@ -86,6 +85,7 @@ void csr_vec_mult(LINEAR_INT n,
       Av[i] += A_values[j] * v[A_ja[j] - 1];
     }
   }
+#endif
 
 #pragma omp parallel for
   for (LINEAR_INT i = 0; i < r; i++) {
@@ -102,7 +102,6 @@ void csr_vec_mult(LINEAR_INT n,
       t2[i] += Q1[j*n+i]*t1[j];
     }
   }
-#endif
   vec_daxpy(n, Av, -1.0, t2);
 }
 
@@ -127,7 +126,6 @@ void vec_scale(LINEAR_INT n,
                double* x,
 	       double alpha) {
 #ifdef USE_INTEL_MKL
-//cblas_dscal (const MKL_INT n, const double a, double *x, const MKL_INT incx);
 cblas_dscal(n, alpha, x, 1);
 #else
 #pragma omp parallel for
@@ -149,7 +147,10 @@ void arnoldi_process(LINEAR_INT n,
                      double* t2) {
   csr_vec_mult(n, A_ia, A_ja, A_values, r, Q1, &(Vk[(k-1)*n]), &(Vk[k*n]), t1, t2);
   //dump_mat(n, 5, Vk, true, "Vk-1:"); // col major
+  //std::cout << "k = " << k << std::endl;
+  //std::cout << "n = " << n << std::endl;
   double alpha_k = dot_prod(n, &(Vk[(k-1)*n]), &(Vk[k*n])); 
+  //std::cout << "alpha_k = " << alpha_k << std::endl;
   Tk[(k-1)*5+2] = alpha_k;
   vec_daxpy(n, &(Vk[k*n]), -alpha_k, &(Vk[(k-1)*n]));
   if (k>=2) {
@@ -157,6 +158,7 @@ void arnoldi_process(LINEAR_INT n,
   }
   //dump_mat(n, 5, Vk, true, "Vk-2:"); // col major
   double beta_kp1 = sqrt(dot_prod(n, &(Vk[k*n]), &(Vk[k*n])));
+  //std::cout << "beta_kp1 = " << beta_kp1 << std::endl;
   Tk[(k-1)*5+0] = 0;
   Tk[(k-1)*5+2] = alpha_k;
   Tk[(k-1)*5+3] = beta_kp1;
@@ -194,7 +196,7 @@ for (LINEAR_INT l = 0; l < r; l++) {
     x[i] = 0;
   }
   //dump_mat(1, n, Vk, false, "rhs:");
-
+  //dump_mat(n, r, Q1, true, "Q1:");
   double beta_1 = sqrt(dot_prod(n, Vk, Vk));
   double res_norm = beta_1;
   //std::cout << "beta_1 = " << beta_1 << std::endl;
@@ -206,7 +208,9 @@ for (LINEAR_INT l = 0; l < r; l++) {
   //while (k < 5 &&
          res_norm > LINEAR_SOLVER_ABS_TOL &&
 	 res_norm > LINEAR_SOLVER_REL_TOL * beta_1) {
+    //dump_mat(5, 5, Tk, false, "Tk:"); // row major
     arnoldi_process(n, A_ia, A_ja, A_values, 0, Q1, k, Vk, Tk, t1, t2);
+    //dump_mat(5, 5, Tk, false, "Tk:"); // row major
 
     /*
     for (LINEAR_INT i = 0; i < k; i++) {
@@ -259,8 +263,8 @@ for (LINEAR_INT l = 0; l < r; l++) {
     Lk[(k-1)*5+2] = tx; Lk[(k-1)*5+3] = ty;
 
     //dump_mat(n, 5, Vk, true, "Vk:"); // col major
-    //dump_mat(5, 5, Tk, false, "Tk:"); // row major
-    //dump_mat(n, 5, Lk, false, "Lk:");
+    
+    //dump_mat(5, 5, Lk, false, "Lk:");
     //dump_mat(1, k, ci, false, "ci:");
     //dump_mat(1, k, si, false, "si:");
     /*
@@ -312,7 +316,7 @@ for (LINEAR_INT l = 0; l < r; l++) {
     //dump_mat(1, n, yk, false,"yk:");
     //dump_mat(1, n, &mk[(k-1)*n], false, "mk:");
     //dump_mat(1, n, x,false, "x:");
-    //prLINEAR_INTf("Iter[%d] res = %.8lf\n", k, res_norm);
+    //printf("Iter[%d] res = %.8lf\n", k, res_norm);
     if (res_norm < LINEAR_SOLVER_ABS_TOL ||
         res_norm < LINEAR_SOLVER_REL_TOL * beta_1) {
       //printf("RHS[%d] Converged at iter %d, residual = %.6lf\n", l, k, res_norm);
