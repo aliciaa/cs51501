@@ -5,7 +5,7 @@ CSRC = $(wildcard *.c)
 COBJ = $(CSRC:%.c=%.o)
 SRC = $(CPPSRC) $(CSRC)
 OBJ = $(CPPOBJ) $(COBJ)
-EXE = tracemin
+EXE = tracemin tracemin_deflation tracemin_davidson
 
 # compiler
 COMPILE = mpiicpc
@@ -32,8 +32,12 @@ all: $(EXE)
 tracemin_deflation: main.o view.o matio.o mmio.o tracemin_deflation.o jacobi.o linear_solver_mres.o
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
+#only works with CG at this moment
+tracemin_davidson: main.o view.o matio.o mmio.o tracemin_davidson.o jacobi.o linear_solver_mres.o
+	$(COMPILE) $^ $(LDFLAGS) -o $@
+
 #tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi.o linear_solver_mres.o
-tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi.o linear_solver_cg.o
+tracemin: main.o view.o matio.o mmio.o tracemin.o jacobi.o linear_solver_mres.o
 	$(COMPILE) $^ $(LDFLAGS) -o $@
 
 clean:
