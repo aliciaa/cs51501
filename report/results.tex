@@ -18,6 +18,8 @@ B_{ij} =
 0, otherwize
 \end{cases}
 \]
+The convergence criteria is either the relative residual $\frac{||Ax-\lambda B x||_2}{||x||_2} < \epsilon$ or the absolute residual $||Ax-\lambda B x||_2 < \epsilon$. When $\lambda$ is very close to zero, the absolute residual works, and when $\lambda$ is not close to zero, the relative residual works. We choose $\epsilon = 10^{-4}$ in our implementation. For the matrices $A$ and $B$ with size $10000 \times 10000$. There are $39$ eigenvalues in $[0, 10]$ : [0.158 0.454 0.726 0.988 1.244 1.497 1.749 1.999 2.250 2.500 2.750 3.000 3.250 3.500 3.750 4.000 4.250 4.500 4.750 5.000 5.250 5.500 5.750 6.000 6.250 6.500 6.750 7.000 7.250 7.500 7.750 8.000 8.250 8.500 8.750 9.000 9.250 9.500 9.750]. One can see they are almost evenly distributed with gap $\sim 0.25$.
+
 
 \subsection{TraceMin}
 For simple TraceMin algorithm, the result on the generated matrices $A$ and $B$ are in Table~\ref{tab:result-tracemin}. In the test we compute the smallest $20$ eigenvalues. The linear solver (CG or MinRes) takes the majority of the runtime (more than $90\%$ percent of the overall runtime). And also with more number of threads, the overall runtime do get decreased, and the major contribution comes from the linear equation solver. The speedup also gets better with larger matrices. 
@@ -40,7 +42,7 @@ $50,000$ & 2 & & & & & &  13 & 117.95 & 1.07 & 2.50 & 110.29\\
 $50,000$ & 4 & & & & & &  13 & 90.17 & 0.90 & 2.49 & 83.89\\
 $50,000$ & 8 & & & & & &  13 & 84.14 & 0.87 & 2.45 & 78.09\\
 \hline
-$100,000$ & 1 & & & & & &  12 & 201.87 & 0.50 & 3.49 & 190.97\\
+$100,000$ & 1 & & & & & &  12 & 622.61 & 0.45 & 8.77 & 600.71\\
 $100,000$ & 2 & & & & & &  12 & 406.59 & 0.97 & 6.20 & 391.31\\
 $100,000$ & 4 & & & & & &  12 & 250.48 & 0.80 & 6.24 & 238.08\\
 $100,000$ & 8 & & & & & &  12 & 236.36 & 0.79 &  6.25 & 224.16\\
