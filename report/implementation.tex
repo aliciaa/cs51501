@@ -54,16 +54,23 @@ We implemented the {\tt CG} linear solver for the linear system (eq.9) when A is
 In order to avoid the invers part of the projection matrix $P=I-BY(Y^TB^2Y)^{-1}Y^TB$, we need to find a orthonormal base $Q$ of $BY$ by QR-factorization. Let's note $Q=[Q_1, Q_2]$. It had been to prove that $P=I-Q_1Q_1^T$. Here I need to point out that the $Q1Q1^T$ should not be explicitly calculated out for there would be too many fill-ins and we would had to store and use a very dense large  matrix. Instead, we should store and use the tall and narrow matrix Q1, and the calculation of $P$ times any matrix $A$ should be replaced by $A-Q_1(Q_1^T\mathcal{A})$ calculated from the right to the left.  
 
 
-Besides, since we noticed the Mat-Vec operation (line3 of Algorithm 5) takes up more than 90\% of the time cosumed by the {\tt CG} solver. We want to parallel the conjugate gradient iterative method to diminish such bottleneck.
-By utilize the fact that our linear system contains multiple equations, we have two designs, one is to $modify$ CG to support the multiple-equations in parallel while the other is $call$ CG algorithms in parallel.
+Besides, we noticed that the Mat-Vec operation (line3 of Algorithm 5) takes up more than 90\% of the time consumed by the {\tt CG} solver. It would be benefit for us to diminish such bottleneck, if we can parallel the {\tt CG} iterative method.  \\
 
-Since the right hand side and the solutions of the linear system (eq. 9) are matrixs instead of vectors. We need to replace the default matrix/vector operators with own matrix/vector operations. Such as the "$\times$" of the (line 4, 9) ,$\otimes$ of the (line 5,6 and 10) and $/$ of the(line 4, 9) of the algorithm 5. For The other designs, we just call the CG for each linear equations in parallel, we can use OpenMP to do calculate each columns separately.
+Since the right hand side and the solutions of the linear system (eq. 9) now are both matrices instead of vectors, and those matrices are just the collections of the different linear equations.We have two designs, the first idea is to $modify$ the {\tt CG} solver to support the multiple-equations in parallel while the other idea is to $call$ the {\tt CG} solvers in parallel.\\
+
+For the first design, we need to replace the default matrix/vector operators with our own matrix/vector operations. Such as the "$\times$" of the (line 4, 9) ,$\otimes$ of the (line 5,6 and 10) and $/$ of the(line 4, 9) of the algorithm 5. Such as: \\
+1. "$\times$"represents an operation of Matrix $A$ and $B$, with the result to be a vector $C$, such that each elemente of the result vector $c_i$ equals $row_i$ of A times $col_i$ of $B$. \\ 
+2. "$\otimes$" represent an operation of a vector $A$ and Matrix $B$ with the result to be a matrix $C$, such that each column of the result matrix $c_{:,j}$ equals $a_j$ times the column of $b_{:,j}$ of $B$.\\
+3. "$/$" represent two vector the relative elements do the  division.  \\
+
+For The other design, we just call the CG for each linear equations in parallel, we can use OpenMP to solve each columns separately.
 
 The advantage of the first one is that the Mat-Vec operation of line3 of algorithm5 is BLAST3 instead of BLAST2. But in practice, there would be a lag because of different convergence speed. Since the OpenMP neither provides us a “mask” to avoid creating the unnecessary threads (like that on CUDA of GPU platform), nor allows the thread to break individually. Then the threads of the converged linear equations had to wait until the slowest one to quit. 
  
 In order to diminish the above lags, I maintained a global array of flags representing whether an equation had converged already. And each OpenMP thread will check the relative flags before it performance its tasks.
 
 According to the lecture, we can accelerate the CG by choosing a smaller iteration number m. Such that the approximation result would accurate enough. according to the Prof. Sameh's work, \ref{alg:basic} we can prove that, whether $\alpha r_1^Tr_1$ smaller than $\sigma^2b^Tb$ where $b$ is the initial residual and $\sigma$ is the approximation of the eigenvalue $\lambda_i$ divided by the largest eigenvalue $\lambda_{s+1} $.  
+  
 \begin{algorithm}[h]
 	\SetArgSty{}
 	\SetKwProg{Proc}{}{ :}{}
