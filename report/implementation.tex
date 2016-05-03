@@ -62,7 +62,7 @@ For the first design, we need to replace the default matrix/vector operators wit
 1. "$\times$"represents an operation of Matrix $A$ and $B$, with the result to be a vector $C$, such that each elemente of the result vector $c_i$ equals $row_i$ of A times $col_i$ of $B$. \\ 
 2. "$\otimes$" represent an operation of a vector $A$ and Matrix $B$ with the result to be a matrix $C$, such that each column of the result matrix $c_{:,j}$ equals $a_j$ times the column of $b_{:,j}$ of $B$.\\
 3. "$/$" represent two vector the relative elements do the  division.  \\
-For The other design, we unpack the relative linear equation by extracting the columns of the right hand side and the solutions matrix. And then create an OpenMP threads to solve it in parallel. After that we pack the solution of each linear equation into the solutions matrix.
+For The other design, we unpack the relative linear equation by extracting the columns from the right hand side and the solutions matrix. And then create an OpenMP threads to solve it in parallel. After that we pack the solution of each linear equation into the solutions matrix.
 
 The advantage of the first one is that the Mat-Vec operation of line3 of algorithm5 is BLAST3 instead of BLAST2. But in practice, there would be a lag because of different convergence speed. Since the OpenMP neither provides us a “mask” to avoid creating the unnecessary threads (like that on CUDA of GPU platform), nor allows the thread to break individually. Then the threads of the converged linear equations had to wait until the slowest one to quit. 
  
@@ -145,6 +145,5 @@ Then we check for all subintervals, if the number of eigenvalue in that interval
 After that we begin with the left most endpoint $a$, keep combining subintervals until the number of eigenvalues are close to the expected average $e_a$. Then we say this is a subsection in the multisection. We keep this procedure until the entire interval $[a,b]$ is divide into $p$ subsections. And we also know the number of eigenvalues in each subsection. Then we can run $p$ TraceMin algorithms on $p$ nodes in parallel to evaluate all eigenvalues in interval $[a,b]$.
 
 In the implementation, we set $s = 4$ and tolerance as $10\%$. The rational behind the tolerance is that we can guarantee that the difference between the number of eigenvalues in each subsection and the expected average will be no more than $ea \times 5\%$. And we use {\tt PARDISO} to compute the $LDL^T$ factorization.
-
 
 
