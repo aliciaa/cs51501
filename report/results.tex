@@ -58,8 +58,8 @@ Figure~\ref{fig:jacobi} shows the comparisons between the two methods.
   \label{fig:jacobi}
 \end{figure}
 
-\subsection{TraceMin}
-For simple TraceMin algorithm, the result on the generated matrices $A$ and $B$ are in Table~\ref{tab:result-tracemin}. In the test we compute the smallest $20$ eigenvalues. The linear solver (CG or MinRes) takes the majority of the runtime (more than $90\%$ percent of the overall runtime). And also with more number of threads, the overall runtime do get decreased, and the major contribution comes from the linear equation solver. The speedup also gets better with larger matrices. 
+\subsection{TraceMin and its Varieties}
+For basic TraceMin algorithm, the result on the generated matrices $A$ and $B$ are in Table~\ref{tab:result-tracemin}. In the test we compute the smallest $20$ eigenvalues. The linear solver (CG or MinRes) takes the majority of the runtime (more than $90\%$ percent of the overall runtime). And also with more number of threads, the overall runtime do get decreased, and the major contribution comes from the linear equation solver. The speedup also gets better with larger matrices. 
 \begin{table*}
 \begin{center}
 \begin{tabular}{| c | c | r | r | r | r | r |  r | r | r | r | r |}
@@ -172,7 +172,7 @@ $\#$proc & Intervals & $\#$eigs & MultiSection & \multicolumn{5}{|c|}{Longest Su
 \begin{tabular}{|c|c|c|c|c|c|c|c|}
 \hline
 eigenvalues =  & 0.158 & 0.454 & 0.726& 0.988 &1.244 &1.497& 1.749 \\ 
-residual norm =  & $2.38\times10^{-5}$ & $2.03\times10^{-5}$ & $2.16\times10{-5}$ & $2.41\times10^{-5}$ & $2.69\times10^{-5}$ & $2.43\times10^{-5}$ & $2.81\times10^{-5}$\\
+residual norm =  & $2.38\times10^{-5}$ & $2.03\times10^{-5}$ & $2.16\times10^{-5}$ & $2.41\times10^{-5}$ & $2.69\times10^{-5}$ & $2.43\times10^{-5}$ & $2.81\times10^{-5}$\\
 \hline
 \hline
 eigenvalues = &1.999 & 2.250 & 2.500 & 2.750 & 3.000& 3.250& 3.500\\
