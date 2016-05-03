@@ -4,6 +4,16 @@
 #include <mkl_types.h>
 
 #define NUM_TIMINGS 5
+#define EIGEN_CONVERGENCE_TOL 1.e-4
+#define MAX_NUM_ITER 10000
+#define PACE 100
+
+static const char NTRANSA = 'N',
+                  TRANSA = 'T',
+                  INCREASING = 'I';
+static const double D_ONE = 1.0,
+                    D_ZERO = 0.0;
+static const char MAT_GXXF[6] = "GXXF";
 
 /* Trace Minimization for finding the smallest p eigenpairs of the generalized eigenvalue problem:
  * 		AY = BY * diag(S)

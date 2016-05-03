@@ -8,17 +8,6 @@
 #include <cstdio>
 #include <cstring>
 
-#define EIGEN_CONVERGENCE_TOL 1.e-4
-#define MAX_NUM_ITER 10000
-#define PACE 10
-
-static const char NTRANSA = 'N',
-                  TRANSA = 'T',
-                  INCREASING = 'I';
-static const double D_ONE = 1.0,
-                    D_ZERO = 0.0;
-static const char MAT_GXXF[6] = "GXXF";
-
 /* Trace Minimization for generalized eigenvalue problem: AY = BY * diag(S)
  * @input n size of the system
  * @input p number of desired eigenvalues
