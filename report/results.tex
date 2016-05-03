@@ -20,7 +20,7 @@ B_{ij} =
 \]
 
 \subsection{TraceMin}
-For simple TraceMin algorithm, the result on the generated matrices $A$ and $B$ are in Table~\ref{tab:result-tracemin}. In the test we compute the smallest $20$ eigenvalues. We can see that with more number of threads, the overall runtime do get decreased, and the major contribution comes from the linear equation solver. 
+For simple TraceMin algorithm, the result on the generated matrices $A$ and $B$ are in Table~\ref{tab:result-tracemin}. In the test we compute the smallest $20$ eigenvalues. The linear solver (CG or MinRes) takes the majority of the runtime (more than $90\%$ percent of the overall runtime). And also with more number of threads, the overall runtime do get decreased, and the major contribution comes from the linear equation solver. The speedup also gets better with larger matrices. 
 \begin{table*}
 \begin{center}
 \begin{tabular}{| c | c | r | r | r | r | r |  r | r | r | r | r |}
@@ -30,15 +30,20 @@ $n = $ & $\#threads$ & \multicolumn{5}{|c|}{ CG} & \multicolumn{5}{|c|}{ MinRes}
 & & Iter & \multicolumn{4}{|c|} {Time} & Iter & \multicolumn{4}{|c|}{Time} \\
 & &       & Total & Jacobi & QR & Linear & & Total & Jacobi & QR & Linear \\
 \hline
-$10,000$ & 1 & & & & & &  61 & 33.23 & 2.26 & 1.42 & 23.77\\
-$10,000$ & 2 & & & & & &  61 & 30.52 & 2.27 & 1.48 & 20.98\\
-$10,000$ & 4 & & & & & &  61 & 27.84 & 2.29 & 1.49 & 18.24\\
-$10,000$ & 8 & & & & & &  61 & 26.70 & 2.28& 1.45 & 17.16\\
+$10,000$ & 1 & & & & & &  12 & 16.23 & 0.44 & 0.28 & 14.29\\
+$10,000$ & 2 & & & & & &  12 & 13.80 & 0.97 & 0.34 & 11.68\\
+$10,000$ & 4 & & & & & &  12 & 11.91 & 0.79 & 0.34 & 10.24\\
+$10,000$ & 8 & & & & & &  12 & 11.37 & 0.79& 0.33 & 9.77\\
 \hline
 $50,000$ & 1 & & & & & &  13 & 201.87 & 0.50 & 3.49 & 190.97\\
 $50,000$ & 2 & & & & & &  13 & 117.95 & 1.07 & 2.50 & 110.29\\
 $50,000$ & 4 & & & & & &  13 & 90.17 & 0.90 & 2.49 & 83.89\\
 $50,000$ & 8 & & & & & &  13 & 84.14 & 0.87 & 2.45 & 78.09\\
+\hline
+$100,000$ & 1 & & & & & &  12 & 201.87 & 0.50 & 3.49 & 190.97\\
+$100,000$ & 2 & & & & & &  12 & 406.59 & 0.97 & 6.20 & 391.31\\
+$100,000$ & 4 & & & & & &  12 & 250.48 & 0.80 & 6.24 & 238.08\\
+$100,000$ & 8 & & & & & &  12 & 236.36 & 0.79 &  6.25 & 224.16\\
 \hline
 \end{tabular}
 \caption{Results on simple TraceMin algorithm.}
@@ -47,7 +52,8 @@ $50,000$ & 8 & & & & & &  13 & 84.14 & 0.87 & 2.45 & 78.09\\
 \end{table*}
 
 \subsection{Multisection}
-Table~\ref{tab:result-multisection} gives the results on using multisection to compute all eigenvalues in interval $[0, 10]$ (39 eigenvalues in total).
+Table~\ref{tab:result-multisection} gives the results on using multisection to compute all eigenvalues in interval $[0, 10]$ (39 eigenvalues in total). In multisection, since we shift the origin of the problem by $(A - \mu B) x = \lambda B x$ in which $\mu$ is the midpoint of each subsection. This will cause the distribution of the eigenvalues to change. So even the number of eigenvalue in each subsection are the same, we may still get different number of iterations on each subproblem. So we only report the time on the subsection which takes the longest time to finish. But we can see that as we divide the entire interval into more subsections, the longest runtime on those subsections are reduced. 
+
 \begin{table*}
 \begin{center}
 \begin{tabular}{|c | c | c | r | r | r | r | r | r |}
@@ -57,11 +63,12 @@ $\#$proc & Intervals & $\#$eigs & MultiSection & \multicolumn{5}{|c|}{Longest Su
 \hline
 1 & $[0, 10]$ & 39 & 0 & 29 & 105.36 & 16.82 & 4.76 & 74.90 \\
 2 & $[0, 4.28, 10]$ & $[17, 22]$ & 0.76 &  46 & 152.10 & 2.70 & 1.34 & 143.00\\
-4 & $[0, 2.67, 5.33, 7.33, 10]$ & $[10, 11, 8, 10]$ & 0.15 & 10 & 15.45 & 0.03 & 0.07 & 14.96 \\
-8 & & & & \\
+4 & $[0, 2.67, 5.33, 7.33, 10]$ & $[10, 11, 8, 10]$ & 0.15 & 18 & 49.96 & 0.05 & 0.11 & 49.19 \\
+8 &$[0, 1.29, 2.58, 3.87, $ & $[5, 5, 5, 5, 5,$ & &  & & & & \\
+& $5.16, 6.45, 7.74, 8.70, 10]$& $5, 4, 5]$& 0.25 & 17 & 29.98 & 0.01 & 0.02 & 29.67\\
 \hline
 \end{tabular}
-\caption{Multisection result on $[0, 10]$.}
+\caption{Multisection result on $[0, 10]$ for the $10000 \times 10000$ generated matrix $A$ and $B$.}
 \label{tab:result-multisection}
 \end{center}
 \end{table*}
