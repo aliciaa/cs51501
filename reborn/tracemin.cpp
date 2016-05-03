@@ -10,7 +10,7 @@
 
 #define EIGEN_CONVERGENCE_TOL 1.e-4
 #define MAX_NUM_ITER 10000
-#define PACE 100
+#define PACE 30
 
 static const char NTRANSA = 'N',
                   TRANSA = 'T',

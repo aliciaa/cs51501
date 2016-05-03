@@ -10,7 +10,7 @@
 
 #define EIGEN_CONVERGENCE_TOL 1.e-4
 #define MAX_NUM_ITER 5000
-#define PACE         50
+#define PACE         20
 
 static const char NTRANSA = 'N',
                   TRANSA = 'T',
@@ -179,26 +179,20 @@ void TraceMin1(const MKL_INT n,
     /*---------------------------------------------------------------------------
 		 * Perform eigen decomposition
 		 *---------------------------------------------------------------------------*/
-    if (c == p) {
-      wA = wB;
-      ordersA = new int[n * wB];
-      memcpy(ordersA, ordersB, n * wB * sizeof(int));
-    } else {
-      /*---------------------------------------------------------------------------
-       * generate the order of annihiliation
-       *---------------------------------------------------------------------------*/
-      GenerateAnnihilationOrder(c, wA, ordersA);
-    }
+    /*---------------------------------------------------------------------------
+     * generate the order of annihiliation
+     *---------------------------------------------------------------------------*/
+    GenerateAnnihilationOrder(c, wA, ordersA);
     j_start = omp_get_wtime();
-		Jacobi1(ordersA, c, wA, M, TS, false);
-		//Jacobi2(ordersA, c, wA, M, TS);
+		//Jacobi1(ordersA, c, wA, M, TS, false);
+		Jacobi2(ordersA, c, wA, M, TS);
     j_end = omp_get_wtime();
     j_total += j_end - j_start;
 
     delete [] ordersA;
 	
 #if 0
-    ViewDense("S", 1, s, S);
+    ViewDense("TS", 1, s, TS);
 #endif
 		/*---------------------------------------------------------------------------
 		 * Sort the eigenvalues and get the permuation
