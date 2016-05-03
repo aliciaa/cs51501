@@ -114,13 +114,13 @@ $100,000$ & 8 &12 & & & & &  12 & 236.36 & 0.79 &  6.25 & 224.16\\
   \label{fig:comp}
 \end{figure}
 
-Figure~\ref{fig:comp} shows the time for different part of TraceMin in the 3 varieties of TraceMin implementations
-using serial Jacobi methods. We observe that the iterative solver is the bottleneck for the basic TraceMin and
-TraceMin with deflation. This is because they both search the solution in a small subspace and hence require more
-iterations to converge. On the other hand, TraceMin-Davidson requires much less time in solving the reduced system
-since the subspace dimension is increasing over iterations. However, when the subspace is larger, the dimension of
-the matrix in the Rayleigh-Ritz procedure increases and requires more time to compute the eigen decomposition. As a
-result, the eigen decomposition step becomes the bottleneck in TraceMin-Davidson.
+Figure~\ref{fig:comp} shows the time for different part of TraceMin in the 3 varieties of TraceMin implementations.
+We observe that the iterative solver is the bottleneck for the basic TraceMin and TraceMin with deflation. This is
+because they both search the solution in a small subspace and hence require more iterations to converge. On the
+other hand, TraceMin-Davidson requires much less time in solving the reduced system since the subspace dimension is
+increasing over iterations. However, when the subspace is larger, the dimension of the matrix in the Rayleigh-Ritz
+procedure increases and requires more time to compute the eigen decomposition. As a result, the eigen decomposition
+step becomes the bottleneck in TraceMin-Davidson.
 
 For this test problem, the number of iterations for the basic TraceMin, TraceMin with deflation and TraceMin-Davidson
 to converge are 316, 24 and 12 respectively.
