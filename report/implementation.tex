@@ -48,7 +48,7 @@ apply the 2-sided Jacobi method for the Rayleigh-Ritz procedure althogh the 1-si
 less expensive.
 
 \subsection{Modified Conjugate Gradient Method}
-We implemented the {\tt CG} linear solver for the linear system (eq.9) when A is s.p.d.  Since the linear solver would take up a large chunk of the time. We did some modifications to help us accelerate the progress. such as\\1. Avoid calculating the matrix inverse;\\2. Make it parallel for different linear equations;\\3. Do a convergence test to stop the iterations earlier.
+We implemented the {\tt CG} linear solver for the linear system (eq.9) when A is s.p.d. And we implement some modifications to accelerate the prograss, since the linear solver would consume a large chunk of the time(as showed in Fig3).\\1. Avoid calculating the matrix inverse;\\2. Make it parallel for different linear equations;\\3. Do a convergence test to stop the iterations earlier.
 
 
 In order to avoid calculating the matrix inverses of the projection matrix $P=I-BY(Y^TB^2Y)^{-1}Y^TB$, we can find a orthogonal base $Q$ of $BY$ by QR-factorization. Let's note $Q=[Q_1, Q_2]$. It is easy to prove that $P=I-Q_1Q_1^T$. Also we should keep in mind that the $Q1Q1^T$ should not be explicitly calculated out since there would be a lot of fill-ins. Then we can calculate the $P\mathcal{A}$ by $\mathcal{A}-Q_1(Q_1^T\mathcal{A})$ from the right to the left in future.  
