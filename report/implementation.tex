@@ -61,28 +61,28 @@ We implemented the {\tt MinRes} linear solver as the class note described. The {
 	\KwOut{Vector $x$ is the solution of $Ax = rhs$}
 	{$x_0 = 0\;$}
 	{$v_1 = rhs$\;}
-	{$\beta_1 = || v_1 ||_2$\;}
+	{$\beta_1 = \| v_1 \|_2$\;}
 	{$v_1 = v_1 / \beta_1$\;}
 	\For{$k = 1 \rightarrow$ mat\_iter, or until convergence}{
 	   \Proc{{\tt Arnoldi process}}{
 	       $v_{k+1} = A v_{k}$\;
 	       $\alpha_k = <v_k, v_{k+1}>$\;
 	       $v_{k+1}  = v_{k+1} - \alpha_k v_k$\;
-	       $\beta_{k+1} = || v_{k+1}||_2$\;
+	       $\beta_{k+1} = \| v_{k+1}\|_2$\;
 	       $v_{k+1} = v_{k+1} / \beta_{k+1}$\;
 	   }
 	   \Proc{Use $c_{k-2}, s_{k-2}, c_{k-1}, s_{k-1}$ to rotate $[0, \beta_{k}, \alpha_k, \beta_{k+1}]$} {
 	       $[\epsilon_k, \delta_k, \dot{r}_k, \beta_{k+1}] = [0, \beta_{k}, \alpha_k, \beta_{k+1}]$ \newline $\begin{bmatrix} c_{k-2} & s_{k-2} & 0 & 0 \\ -s_{k-2} & c_{k-2} & 0 & 0 \\ 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 \end{bmatrix} \begin{bmatrix} 0 & 0 & 0 & 0 \\ 0 & c_{k-1} & s_{k-1} & 0 \\ 0 & -s_{k-1} & c_{k-1} & 0 \\ 0 & 0 & 0 & 0 \end{bmatrix}$
 	   }
 	   \Proc{Get $c_k, s_k$ to rotate $[\epsilon_k, \delta_k, \dot{r}_k, \beta_{k+1}]$ to $[\epsilon_k, \delta_k, r_k, 0]$ } {
-	      $[\epsilon_k, \delta_k, r_k, 0] = [\epsilon_k, \delta_k, \dot{r}_k, \beta_{k+1}] \begin{bmatrix} 0 & 0 & 0 & 0 \\  0 & 0 & 0 & 0 \\ 0 & 0 & c_k & s_k \\\\ 0 & 0 & -s_k & c_k\\ \end{bmatrix}$
+	      $[\epsilon_k, \delta_k, r_k, 0] = [\epsilon_k, \delta_k, \dot{r}_k, \beta_{k+1}] \begin{bmatrix} 0 & 0 & 0 & 0 \\  0 & 0 & 0 & 0 \\ 0 & 0 & c_k & s_k \\ 0 & 0 & -s_k & c_k\\ \end{bmatrix}$
 	   }
 	   {Solve $m_k$ from $\epsilon_k m_{k-2} + \delta_k m_{k-1} + r_k m_k = v_k$\;}
 	   {$\tau_k = s_1 \cdots s_{k-1} c_k$\;}
 	   {Update $x_k = x_{k-1} + \beta_1 \tau_k v_k$\;}
 	   {Check convergence $r_k = A x_k - rhs$\;}
 	}
-	\caption{MinRes Algorithm}
+	\caption{Minimum Residual Algorithm}
 	\label{alg:minres}
 \end{algorithm}
 
