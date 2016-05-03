@@ -64,9 +64,9 @@ For basic TraceMin algorithm, the result on the generated matrices $A$ and $B$ a
 \begin{center}
 \begin{tabular}{| c | c | r | r | r | r | r |  r | r | r | r | r |}
 \hline
-$n = $ & $\#threads$ & \multicolumn{5}{|c|}{ CG} & \multicolumn{5}{|c|}{ MinRes} \\ 
+$n = $ & $\#threads$ & \multicolumn{5}{c|}{ CG} & \multicolumn{5}{c|}{ MinRes} \\ 
 \hline
-& & Iter & \multicolumn{4}{|c|} {Time} & Iter & \multicolumn{4}{|c|}{Time} \\
+& & Iter & \multicolumn{4}{c|} {Time} & Iter & \multicolumn{4}{c|}{Time} \\
 & &       & Total & Jacobi & QR & Linear & & Total & Jacobi & QR & Linear \\
 \hline
 $10,000$ & 1 &12 & 40.02 & 0.44 & 0.29 & 37.98 &  12 & 16.23 & 0.44 & 0.28 & 14.29\\
@@ -152,7 +152,7 @@ runtime on those subsections are reduced.
 \begin{center}
 \begin{tabular}{|c | c | c | r | r | r | r | r | r |}
 \hline
-$\#$proc & Intervals & $\#$eigs & MultiSection & \multicolumn{5}{|c|}{Longest Subsection} \\
+$\#$proc & Intervals & $\#$eigs & MultiSection & \multicolumn{5}{c|}{Longest Subsection} \\
   & & &  & Iter & Total & Jacobi & QR & Linear \\
 \hline
 1 & $[0, 10]$ & 39 & 0 & 29 & 105.36 & 16.82 & 4.76 & 74.90 \\
