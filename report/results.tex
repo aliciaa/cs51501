@@ -1,6 +1,5 @@
 \label{sec:results}
-
-The test matrix we use is defined as :
+The test matrix we use is defined as:
 \[
 A_{ij} =
 \begin{cases}
@@ -19,6 +18,38 @@ B_{ij} =
 \end{cases}
 \]
 The convergence criteria is either the relative residual $\frac{||Ax-\lambda B x||_2}{||x||_2} < \epsilon$ or the absolute residual $||Ax-\lambda B x||_2 < \epsilon$. When $\lambda$ is very close to zero, the absolute residual works, and when $\lambda$ is not close to zero, the relative residual works. We choose $\epsilon = 10^{-4}$ in our implementation. For the matrices $A$ and $B$ with size $10000 \times 10000$. There are $39$ eigenvalues in $[0, 10]$. Their values the the residual norms computed by TraceMin algorithm are in Table~\ref{tab:eigs}. One can see they are almost evenly distributed with gap $\sim 0.25$. 
+
+\subsection{Jacobi Methods}
+As mentioned in the previous section, the 1-sided and 2-sided Jacobi methods have different pros and cons. In general,
+the 1-sided Jacobi method outperforms the 2-sided Jacobi method in computing the eigen decomposition.
+Figure~\ref{fig:jacobi} shows the comparisons between the two methods.
+
+\begin{figure}[htbp]
+	\centering
+	\begin{tikzpicture}
+		\begin{axis}[
+				ybar,
+				enlargelimits=0.15,
+				legend style={at={(0.5,-0.1)},
+				anchor=north,legend columns=-1},
+				ylabel={average time (s)},
+				xtick=data,
+				y tick label style={
+					/pgf/number format/.cd,
+					fixed,
+					fixed zerofill,
+					precision=2,
+					/tikz/.cd
+				},
+			]
+			\addplot table [x=size,y=jacobi1] {jacobi.dat};
+			\addplot table [x=size,y=jacobi2] {jacobi.dat};
+			\legend{1-sided Jacobi, 2-sided Jacobi}
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Time for different variations of TraceMin with parallel Jacobi for a $10,000 \times 10,000$ system}
+  \label{fig:jacobi}
+\end{figure}
 
 \subsection{TraceMin}
 For simple TraceMin algorithm, the result on the generated matrices $A$ and $B$ are in Table~\ref{tab:result-tracemin}. In the test we compute the smallest $20$ eigenvalues. The linear solver (CG or MinRes) takes the majority of the runtime (more than $90\%$ percent of the overall runtime). And also with more number of threads, the overall runtime do get decreased, and the major contribution comes from the linear equation solver. The speedup also gets better with larger matrices. 
