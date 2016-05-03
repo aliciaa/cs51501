@@ -58,6 +58,19 @@ $100,000$ & 8 & & & & & &  12 & 236.36 & 0.79 &  6.25 & 224.16\\
 \end{center}
 \end{table*}
 
+Figure~\ref{fig:comp_s} shows the time for different part of TraceMin in the 3 varieties of TraceMin implementations
+using serial Jacobi methods. We observe that the iterative solver is the bottleneck for the basic TraceMin and
+TraceMin with deflation. This is because they both search the solution in a small subspace and hence require more
+iterations to converge. On the other hand, TraceMin-Davidson requires much less time in solving the reduced system
+since the subspace dimension is increasing over iterations. However, when the subspace is larger, the dimension of
+the matrix in the Rayleigh-Ritz procedure increases and requires more time to compute the eigen decomposition. As a
+result, the eigen decomposition step becomes the bottleneck in TraceMin-Davidson.
+
+Figure~\ref{fig:comp_p} show the same system except using parallel Jacobi methods. We can observe that both the
+basic TraceMin and TraceMin with deflation take more time on the eigen decomposition step. This is because the
+dimension of the matrices to be decomposed are small and parallelism becomes inefficient. On the other hand, in
+TraceMin-Davidson the dense matrix dimension increases over iteration, and parallelism becomes more efficient.
+
 \begin{figure}[htbp]
 	\centering
 	\begin{tikzpicture}
@@ -75,8 +88,29 @@ $100,000$ & 8 & & & & & &  12 & 236.36 & 0.79 &  6.25 & 224.16\\
 			\legend{Jacobi, QR, Linear}
 		\end{axis}
 	\end{tikzpicture}
-	\caption{Time for different variations of TraceMin with serial Jacobi}
-  \label{fig:timenodes}
+	\caption{Time for different variations of TraceMin with serial Jacobi methods for a $10,000 \times 10,000$ system}
+  \label{fig:comp_s}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\begin{tikzpicture}
+		\begin{axis}[ybar stacked,
+				enlargelimits=0.15,
+				legend style={at={(0.5,-0.1)},	anchor=north,legend columns=-1},
+				symbolic x coords={Basic, Deflation, Davidson},
+				xtick=data,
+				ylabel={total time (s)},
+				thick,
+				no markers]
+			\addplot table [x=method,y=jacobi] {comparison_p.dat};
+			\addplot table [x=method,y=qr] {comparison_p.dat};
+			\addplot table [x=method,y=linear] {comparison_p.dat};
+			\legend{Jacobi, QR, Linear}
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Time for different variations of TraceMin with parallel Jacobi for a $10,000 \times 10,000$ system}
+  \label{fig:comp_p}
 \end{figure}
 
 \subsection{Multisection}
