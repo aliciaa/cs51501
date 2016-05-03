@@ -51,6 +51,27 @@ $100,000$ & 8 & & & & & &  12 & 236.36 & 0.79 &  6.25 & 224.16\\
 \end{center}
 \end{table*}
 
+\begin{figure}[htbp]
+	\centering
+	\begin{tikzpicture}
+		\begin{axis}[ybar stacked,
+				enlargelimits=0.15,
+				legend style={at={(0.5,-0.1)},	anchor=north,legend columns=-1},
+				symbolic x coords={Basic, Deflation, Davidson},
+				xtick=data,
+				ylabel={total time (s)},
+				thick,
+				no markers]
+			\addplot table [x=method,y=jacobi] {comparison.dat};
+			\addplot table [x=method,y=qr] {comparison.dat};
+			\addplot table [x=method,y=linear] {comparison.dat};
+			\legend{Jacobi, QR, Linear}
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Time for different variations of TraceMin with serial Jacobi}
+  \label{fig:timenodes}
+\end{figure}
+
 \subsection{Multisection}
 Table~\ref{tab:result-multisection} gives the results on using multisection to compute all eigenvalues in interval $[0, 10]$ (39 eigenvalues in total). In multisection, since we shift the origin of the problem by $(A - \mu B) x = \lambda B x$ in which $\mu$ is the midpoint of each subsection. This will cause the distribution of the eigenvalues to change. So even the number of eigenvalue in each subsection are the same, we may still get different number of iterations on each subproblem. So we only report the time on the subsection which takes the longest time to finish. But we can see that as we divide the entire interval into more subsections, the longest runtime on those subsections are reduced. 
 
@@ -73,4 +94,16 @@ $\#$proc & Intervals & $\#$eigs & MultiSection & \multicolumn{5}{|c|}{Longest Su
 \end{center}
 \end{table*}
 
-
+\begin{figure}[htbp]
+	\centering
+	\begin{tikzpicture}
+		\begin{axis}[xlabel={number of nodes},
+				ylabel={total time (s)},
+				thick,
+				no markers]
+			\addplot table [x=nodes,y=time] {multisection_time.dat};
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Total time for different number of nodes used}
+  \label{fig:timenodes}
+\end{figure}
