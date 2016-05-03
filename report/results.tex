@@ -1,1 +1,69 @@
 \label{sec:results}
+
+The test matrix we use is defined as :
+\[
+A_{ij} =
+\begin{cases}
+i, i =j \\
+0.5, i = j+1, j-1 \\
+0.5, (i, j) \in \{(1, n), (n,1)\} \\
+0, otherwise
+\end{cases}
+\]
+\[
+B_{ij} = 
+\begin{cases}
+4, i = j \\
+-1, i = j+1, j-1 \\
+0, otherwize
+\end{cases}
+\]
+
+\subsection{TraceMin}
+For simple TraceMin algorithm, the result on the generated matrices $A$ and $B$ are in Table~\ref{tab:result-tracemin}. In the test we compute the smallest $20$ eigenvalues. We can see that with more number of threads, the overall runtime do get decreased, and the major contribution comes from the linear equation solver. 
+\begin{table*}
+\begin{center}
+\begin{tabular}{| c | c | r | r | r | r | r |  r | r | r | r | r |}
+\hline
+$n = $ & $\#threads$ & \multicolumn{5}{|c|}{ CG} & \multicolumn{5}{|c|}{ MinRes} \\ 
+\hline
+& & Iter & \multicolumn{4}{|c|} {Time} & Iter & \multicolumn{4}{|c|}{Time} \\
+& &       & Total & Jacobi & QR & Linear & & Total & Jacobi & QR & Linear \\
+\hline
+$10,000$ & 1 & & & & & &  61 & 33.23 & 2.26 & 1.42 & 23.77\\
+$10,000$ & 2 & & & & & &  61 & 30.52 & 2.27 & 1.48 & 20.98\\
+$10,000$ & 4 & & & & & &  61 & 27.84 & 2.29 & 1.49 & 18.24\\
+$10,000$ & 8 & & & & & &  61 & 26.70 & 2.28& 1.45 & 17.16\\
+\hline
+$50,000$ & 1 & & & & & &  13 & 201.87 & 0.50 & 3.49 & 190.97\\
+$50,000$ & 2 & & & & & &  61 & 30.52 & 2.27 & 1.48 & 20.98\\
+$50,000$ & 4 & & & & & &  61 & 27.84 & 2.29 & 1.49 & 18.24\\
+$50,000$ & 8 & & & & & &  61 & 26.70 & 2.28& 1.45 & 17.16\\
+\hline
+\end{tabular}
+\caption{Results on simple TraceMin algorithm.}
+\label{tab:result-tracemin}
+\end{center}
+\end{table*}
+
+\subsection{Multisection}
+Table~\ref{tab:result-multisection} gives the results on using multisection to compute all eigenvalues in interval $[0, 10]$ (39 eigenvalues in total).
+\begin{table*}
+\begin{center}
+\begin{tabular}{|c | c | c | r | r | r | r | r | r |}
+\hline
+$\#$proc & Intervals & $\#$eigs & MultiSection & \multicolumn{5}{|c|}{Longest Subsection} \\
+  & & &  & Iter & Total & Jacobi & QR & Linear \\
+\hline
+1 & $[0, 10]$ & 39 & 0 & 29 & 105.36 & 16.82 & 4.76 & 74.90 \\
+2 & $[0, 4.28, 10]$ & $[17, 22]$ & 0.76 &  46 & 152.10 & 2.70 & 1.34 & 143.00\\
+4 & $[0, 2.67, 5.0, 7.33, 10]$ & $[10, 10, 9, 10]$ & 0.15 & 116 & 40.67 & 0.37 & 1.56 & 34.33 \\
+8 & & & & \\
+\hline
+\end{tabular}
+\caption{Multisection result on $[0, 10]$.}
+\label{tab:result-multisection}
+\end{center}
+\end{table*}
+
+
