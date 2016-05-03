@@ -48,17 +48,16 @@ apply the 2-sided Jacobi method for the Rayleigh-Ritz procedure althogh the 1-si
 less expensive.
 
 \subsection{Modified Conjugate Gradient Method}
-We implemented the {\tt CG} linear solver for the linear system (eq.9) when A is s.p.d. And we did some modifications to accelerate the {\tt CC} linear solver, since the it consumes a large chunk of time(as showed in Fig3). Such as:\\1. Avoid calculating the matrix inverse;\\2. Make it parallel for different linear equations;\\3. Do a convergence test to stop the iterations earlier.
+We implemented the {\tt CG} linear solver for the linear system (eq.9) when A is s.p.d.(Algorithm 5) And we did some modifications to accelerate the {\tt CC} linear solver, since the it consumes a large chunk of time(as showed in Fig3). Such as:\\1. Avoid calculating the matrix inverse;\\2. Make it parallel for different linear equations;\\3. Do a convergence test to stop the iterations earlier.
 
 
-In order to avoid the invers part of the projection matrix $P=I-BY(Y^TB^2Y)^{-1}Y^TB$, we need to find a orthonormal base $Q$ of $BY$ by QR-factorization. Let's note $Q=[Q_1, Q_2]$. It had been to prove that $P=I-Q_1Q_1^T$. Here I need to point out that the $Q1Q1^T$ should not be explicitly calculated out for otherwise we had to store and calculate a large dense matrix. Instead, Then we should store the tall and narrow matrix Q1, and the calculation of $P A$ should be replaced by $A-Q_1(Q_1^T\mathcal{A})$ calculated from the right to the left.  
+In order to avoid the invers part of the projection matrix $P=I-BY(Y^TB^2Y)^{-1}Y^TB$, we need to find a orthonormal base $Q$ of $BY$ by QR-factorization. Let's note $Q=[Q_1, Q_2]$. It had been to prove that $P=I-Q_1Q_1^T$. Here I need to point out that the $Q1Q1^T$ should not be explicitly calculated out for there would be too many fill-ins and we would had to store and use a very dense large  matrix. Instead, we should store and use the tall and narrow matrix Q1, and the calculation of $P$ times any matrix $A$ should be replaced by $A-Q_1(Q_1^T\mathcal{A})$ calculated from the right to the left.  
 
 
-Also since the Mat-Vec operation (line3 of Algorithm 5) takes up a lot of time. We want to parallel the conjugate gradient iterative method by utilize the fact that our linear system contains multiple equations. 
+Besides, since we noticed the Mat-Vec operation (line3 of Algorithm 5) takes up more than 90\% of the time cosumed by the {\tt CG} solver. We want to parallel the conjugate gradient iterative method to diminish such bottleneck.
+By utilize the fact that our linear system contains multiple equations, we have two designs, one is to $modify$ CG to support the multiple-equations in parallel while the other is $call$ CG algorithms in parallel.
 
-There are two designs, one is to $modify$ CG to support the multiple-equations in parallel another is just $call$ CG algorithms in parallel.
-
-The first one want us to implement own  matrix operations "$\times$" in (line 4, 9),$\otimes$ (in line 5,6 and 10) and $/$ in (line 4, 9) of the algorithm 5, as showed during the presentation. For The other designs, we just call the CG for each linear equations in parallel, we can use OpenMP to do calculate each columns separately.
+Since the right hand side and the solutions of the linear system (eq. 9) are matrixs instead of vectors. We need to replace the default matrix/vector operators with own matrix/vector operations. Such as the "$\times$" of the (line 4, 9) ,$\otimes$ of the (line 5,6 and 10) and $/$ of the(line 4, 9) of the algorithm 5. For The other designs, we just call the CG for each linear equations in parallel, we can use OpenMP to do calculate each columns separately.
 
 The advantage of the first one is that the Mat-Vec operation of line3 of algorithm5 is BLAST3 instead of BLAST2. But in practice, there would be a lag because of different convergence speed. Since the OpenMP neither provides us a “mask” to avoid creating the unnecessary threads (like that on CUDA of GPU platform), nor allows the thread to break individually. Then the threads of the converged linear equations had to wait until the slowest one to quit. 
  
