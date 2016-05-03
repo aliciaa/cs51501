@@ -51,7 +51,7 @@ less expensive.
 We implemented the {\tt CG} linear solver for the linear system (eq.9) when A is s.p.d. And we did some modifications to accelerate the {\tt CC} linear solver, since the it consumes a large chunk of time(as showed in Fig3). Such as:\\1. Avoid calculating the matrix inverse;\\2. Make it parallel for different linear equations;\\3. Do a convergence test to stop the iterations earlier.
 
 
-In order to avoid the invers of the projection matrix $P=I-BY(Y^TB^2Y)^{-1}Y^TB$, we need to find a orthonormal base $Q$ of $BY$ by QR-factorization. Let's note $Q=[Q_1, Q_2]$. It had been to prove that $P=I-Q_1Q_1^T$. Also we should keep in mind that the $Q1Q1^T$ should not be explicitly calculated out since there would be a lot of fill-ins. Then we can calculate the $P\mathcal{A}$ by $\mathcal{A}-Q_1(Q_1^T\mathcal{A})$ from the right to the left in future.  
+In order to avoid the invers of the projection matrix $P=I-BY(Y^TB^2Y)^{-1}Y^TB$, we need to find a orthonormal base $Q$ of $BY$ by QR-factorization. Let's note $Q=[Q_1, Q_2]$. It had been to prove that $P=I-Q_1Q_1^T$. Here I need to point out that the $Q1Q1^T$ should not be explicitly calculated out for otherwise we had to store and calculate a large dense matrix. Instead, Then we should store the tall and narrow matrix Q1, and the calculation of $P A$ should be replaced by $A-Q_1(Q_1^T\mathcal{A})$ calculated from the right to the left.  
 
 
 Also since the Mat-Vec operation (line3 of Algorithm 5) takes up a lot of time. We want to parallel the conjugate gradient iterative method by utilize the fact that our linear system contains multiple equations. 
