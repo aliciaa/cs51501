@@ -1,5 +1,51 @@
 \label{sec:implementation}
 \subsection{Eigen Decomposition for Dense Matrices}
+The $B$-orthonormalization and the Rayleigh-Ritz procedures both involve finding the eigen decomposition of a
+dense matrix. In our project, we implemented the 1-sided and 2-sided Jacobi methods as the eigen decomposition
+routines. They can both be parallelized in a similar manner since the plane rotations are applied on two columns
+(or rows) and are independent from other columns (or rows). In the textbook\cite{gallopoulos}, it provides a
+parallelism scheme to simultaneously compute $\lfloor n / 2\rfloor$ plane rotations. This scheme applies to both
+1-sided and 2-sided Jacobi methods. In this project, we apply a simpilfied algorithm to compute the order of
+annihilations as described in Algorithm~\ref{alg:order}.
+\begin{algorithm}[!h]
+	\SetArgSty{}
+	\SetKwProg{Proc}{}{ :}{}
+	\KwIn{Matrix dimension $n$}
+	\KwOut{The order of annihilations $\mathcal{P}_k$ for each iteration $k$ of Jacobi mehods}
+	$m = \left\lfloor\dfrac{n}{2}\right\rfloor$\;
+	\For{$k = 1 \rightarrow$ n}{
+		$\mathcal{P}_k = \emptyset$\;
+		\For{$j = \dfrac{n-k}{2} + 1 \rightarrow \dfrac{n-k}{2} + m$}{
+			$i = n - k - j$\;
+			\If{$i + n \ne j$}{
+				\lIf{$i < 0$}{$\mathcal{P}_k = \mathcal{P}_k \cup \{(j,i+n)\}$}
+				\lElse{$\mathcal{P}_k = \mathcal{P}_k \cup \{(i, j)\}$}
+			}
+		}
+	}
+	\caption{Order of Annihilations}\label{alg:order}
+\end{algorithm}
+Since this order of annihilation depends only on the matrix dimension, it does not change throughout the outer
+loop of the trace minimization algorithms except that for the Rayleigh-Ritz procedure in TraceMin-Davidson algorithm.
+Hence, the order can be computed before the outer loop and reused throughout the iterations. For Tracemin-Davidson
+algorithm, new order needs to be recomputed since the dimension increases over iterations.
+
+The two Jacobi methods differ from each other in some ways. For the 1-sided Jacobi method, it finds an orthogonal
+matrix $U$ such that $A U = Q$ is a matrix of orthogonal columns and $Q$ can be written as $V \Sigma$ with
+$V^T V = I$; whereas for the 2-sided Jacobi method, it finds an orthogonal matrix $U$ such that $UAU^T = D$ and
+$D$ is diagonal. Plane rotations only apply on columns for 1-sided Jacobi method but apply on both columns and rows
+for 2-sided Jacobi method. The angle of plane rotation depends on the 2-norms of the columns and their inner
+product for 1-sided Jacobi method, and the values of the $2 \times 2$ principal submatrix for 2-sided Jacobi method.
+Finally, for 1-sided Jacobi method, the absolute values of the eigenvalues are the 2-norms of the columns of $Q$ and
+the eigenvectors are found by scaling the columns by the inverse of the eigenvalues. For 2-sided Jacobi method, the
+resulting diagonal matrix $D$ contains the eigenvalues and the columns of matrix $U^T$ which is the product of all
+the plane rotations are the eigenvectors. Since the 1-sided Jacobi method naturally computes the absolute values of
+the eigenvalues, it is more suitable to be used on the $B$-orthonormalization procedure since $B$ is symmetric
+positive definite and the eigenvalues of $V^T B V$ are always positive. To find negative eigenvalues by the 1-sided
+Jacobi method, one needs to calculate the Rayleigh quotient $v^T A v / \|v\|_2$. During the experiments, we found
+that the 2-sided Jacobi method is more numerically stable when calculating negative eigenvalues. Therefore, we
+apply the 2-sided Jacobi method for the Rayleigh-Ritz procedure althogh the 1-sided Jacobi method is computationally
+less expensive.
 
 \subsection{Modified Conjugate Gradient Method}
 
