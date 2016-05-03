@@ -7,7 +7,7 @@ routines. They can both be parallelized in a similar manner since the plane rota
 parallelism scheme to simultaneously compute $\lfloor n / 2\rfloor$ plane rotations. This scheme applies to both
 1-sided and 2-sided Jacobi methods. In this project, we apply a simpilfied algorithm to compute the order of
 annihilations as described in Algorithm~\ref{alg:order}.
-\begin{algorithm}[!h]
+\begin{algorithm}[!ht]
 	\SetArgSty{}
 	\SetKwProg{Proc}{}{ :}{}
 	\KwIn{Matrix dimension $n$}
@@ -52,7 +52,7 @@ less expensive.
 \subsection{Minimum Residual Method}
 We implemented the {\tt MinRes} linear solver as the class note described. The {\tt MinRes} linear solver works in the case when $A$ is not s.p.d, which is required in the multisection algorithm.  The flowchart of the algorithm is given in Algorithm~\ref{alg:minres}. Out implementation is a directly transcript of the describe algorithm, except that we solve each column in $N_k$ independently to get each column of $\Delta_k$. And we replace the matrix-vector multiplication $Ax$ in the {\tt Arnoldi process} into $(I-Q_1 Q_1^T)Ax$, because the system we are solving is $(I-Q_1 Q_1^T)A \Delta_k = N_k$. In each iteration, only one matrix vector multiplication is needed. And we implement the algorithm using {\tt Intel MKL}.
 
-\begin{algorithm}[h]
+\begin{algorithm}[!ht]
 	\SetArgSty{}
 	\SetKwProg{Proc}{}{ :}{}
 	\KwIn{$A$ a symmetric matrix, \newline

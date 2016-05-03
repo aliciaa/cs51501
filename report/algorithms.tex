@@ -1,5 +1,5 @@
 \label{sec:algorithms}
-\begin{algorithm}[!h]
+\begin{algorithm}[!ht]
 	\SetArgSty{}
 	\SetKwProg{Proc}{}{ :}{}
 	\KwIn{Subspace dimension $s = 2p$,\newline
@@ -145,7 +145,7 @@ $U = I - B C \left(C^T B^2 C\right)^{-1}C^T B$ such that $V_k$ is $B$-orthogonal
 in Algorithm~\ref{alg:deflation}. Details are omitted if they are the same as the basic algorithm and the changes are
 highlighted in blue.
 
-\begin{algorithm}[!h]
+\begin{algorithm}[!ht]
 	\SetArgSty{}
 	\SetNlSty{bfseries}{\color{black}}{}
 	\SetKwProg{Proc}{}{ :}{}
@@ -185,7 +185,7 @@ Line~\ref{ln:Bortho} can be simplified as follows:
 \end{enumerate}
 Additionally, we only need to compute the $s$ new vectors of $AV_k$ in Line~\ref{ln:AZ} and the corresponding columns
 of $Z_k^T A Z_k$ in Line~\ref{ln:ZAZ}.
-\begin{algorithm}[!h]
+\begin{algorithm}[!ht]
 	\SetArgSty{}
 	\SetKwProg{Proc}{}{ :}{}
 	\KwIn{\textcolor{blue}{Block size $s \ge p$,}\newline
