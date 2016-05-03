@@ -48,6 +48,48 @@ apply the 2-sided Jacobi method for the Rayleigh-Ritz procedure althogh the 1-si
 less expensive.
 
 \subsection{Modified Conjugate Gradient Method}
+We implemented the {\tt CG} linear solver for the linear system (eq.9) when A is s.p.d.  Since the linear solver would take up a large chunk of the time. We did some modifications to help us accelerate the progress. such as\\1. Avoid calculating the matrix inverse;\\2. Make it parallel for different linear equations;\\3. Do a convergence test to stop the iterations earlier.
+
+
+In order to avoid calculating the matrix inverses of the projection matrix $P=I-BY(Y^TB^2Y)^{-1}Y^TB$, we can find a orthogonal base $Q$ of $BY$ by QR-factorization. Let's note $Q=[Q_1, Q_2]$. It is easy to prove that $P=I-Q_1Q_1^T$. Also we should keep in mind that the $Q1Q1^T$ should not be explicitly calculated out since there would be a lot of fill-ins. Then we can calculate the $P\mathcal{A}$ by $\mathcal{A}-Q_1(Q_1^T\mathcal{A})$ from the right to the left in future.  
+
+
+Also since the Mat-Vec operation (line3 of Algorithm 5) takes up a lot of time. We want to parallel the conjugate gradient iterative method by utilize the fact that our linear system contains multiple equations. 
+
+There are two designs, one is to $modify$ CG to support the multiple-equations in parallel another is just $call$ CG algorithms in parallel.
+
+The first one want us to implement own  matrix operations "$\times$" in (line 4, 9),$\otimes$ (in line 5,6 and 10) and $/$ in (line 4, 9) of the algorithm 5, as showed during the presentation. For The other designs, we just call the CG for each linear equations in parallel, we can use OpenMP to do calculate each columns separately.
+
+The advantage of the first one is that the Mat-Vec operation of line3 of algorithm5 is BLAST3 instead of BLAST2. But in practice, there would be a lag because of different convergence speed. Since the OpenMP neither provides us a “mask” to avoid creating the unnecessary threads (like that on CUDA of GPU platform), nor allows the thread to break individually. Then the threads of the converged linear equations had to wait until the slowest one to quit. 
+ 
+In order to diminish the above lags, I maintained a global array of flags representing whether an equation had converged already. And each OpenMP thread will check the relative flags before it performance its tasks.
+
+According to the lecture, we can accelerate the CG by choosing a smaller iteration number m. Such that the approximation result would accurate enough. according to the Prof. Sameh's work, \ref{alg:basic} we can prove that, whether $\alpha r_1^Tr_1$ smaller than $\sigma^2b^Tb$ where $b$ is the initial residual and $\sigma$ is the approximation of the eigenvalue $\lambda_i$ divided by the largest eigenvalue $\lambda_{s+1} $.  
+\begin{algorithm}[h]
+	\SetArgSty{}
+	\SetKwProg{Proc}{}{ :}{}
+	\KwIn{$A$ a symmetric positive definite matrix, \newline$R$ the right hand side Matrix
+	}
+	\KwOut{$X$ is the solution of $(I-Q_1Q_1^T)AX = R$}
+	\Kw{$wocao$}
+	{$r_0 = p = R$\;}
+	\For{$k = 1 \rightarrow$ max\_iter}{
+	   {$\mathcal{P} = A\circ p - Q_1(Q_1^T(A\circ p))$\;}
+	   {$\alpha = r_0^T\times r_0\ /\ (p^T\times \mathcal{P})$\;}
+	   {$X   = X+\alpha \otimes p$\;}
+	   {$r_1 = r_0 -\alpha\otimes \mathcal{P}$\;}
+	   \If{test converge or $r_1$ is sufficient small} 
+	   {
+	    {$break$\;}
+	    }
+	    { $\beta = r_1^T\times r_1 \ / \ (r_0^T\times r_0) $\;}
+	    { $p = r_1 + \beta \otimes p$\;}
+	    
+	}
+	\caption{Modified Conjugate Gradient Algorithm}
+	\label{alg:modifiedcg}
+\end{algorithm}
+
 
 \subsection{Minimum Residual Method}
 We implemented the {\tt MinRes} linear solver as the class note described. The {\tt MinRes} linear solver works in the case when $A$ is not s.p.d, which is required in the multisection algorithm.  The flowchart of the algorithm is given in Algorithm~\ref{alg:minres}. Out implementation is a directly transcript of the describe algorithm, except that we solve each column in $N_k$ independently to get each column of $\Delta_k$. And we replace the matrix-vector multiplication $Ax$ in the {\tt Arnoldi process} into $\left(I-Q_1 Q_1^T\right)Ax$, because the system we are solving is $\left(I-Q_1 Q_1^T\right)A \Delta_k = N_k$. In each iteration, only one matrix vector multiplication is needed. And we implement the algorithm using {\tt Intel MKL}.
