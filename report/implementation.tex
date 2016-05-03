@@ -64,11 +64,12 @@ For the first design, we need to replace the default matrix/vector operators wit
 3. "$/$" represent two vector the relative elements do the  division.  \\
 For The other design, we unpack the relative linear equation by extracting the columns from the right hand side and the solutions matrix. And then create an OpenMP threads to solve it in parallel. After that we pack the solution of each linear equation into the solutions matrix.
 
-The advantage of the first one is that the Mat-Vec operation of line3 of algorithm5 is BLAST3 instead of BLAST2. But in practice, there would be a lag because of different convergence speed. Since the OpenMP neither provides us a “mask” to avoid creating the unnecessary threads (like that on CUDA of GPU platform), nor allows the thread to break individually. Then the threads of the converged linear equations had to wait until the slowest one to quit. 
- 
+The advantage of the first one is that the Mat-Vec operation of line3 of algorithm5 is BLAST3 instead of BLAST2. But in practice, there would be a lag because of different convergence speed. Since the OpenMP neither provides us a “mask” to avoid creating the unnecessary threads (like that on CUDA of GPU platform), nor allows the thread to break individually. Then the threads of fast converged linear equations had to wait until the slowest one to quit. The lags is of $O(pd)$ where $p$ is the number of linear equations and $d$ is constrained by the maximum iteration number of the cg algorithm.
+
 In order to diminish the above lags, I maintained a global array of flags representing whether an equation had converged already. And each OpenMP thread will check the relative flags before it performance its tasks.  
 
-According to the lecture, we can accelerate the CG by choosing a smaller iteration number m. Such that the approximation result would accurate enough. according to the Prof. Sameh's work, \ref{alg:basic} we can prove that, whether $\alpha r_1^Tr_1$ smaller than $\sigma^2b^Tb$ where $b$ is the initial residual and $\sigma$ is the approximation of the eigenvalue $\lambda_i$ divided by the largest eigenvalue $\lambda_{s+1} $.  \\
+What's more, according to the lecture, we can accelerate the CG by choosing a smaller iteration number $m$. Such that the approximation result are accurate enough. Then We don't need to waste the time on calculate the exact results at each step.  According to the Prof. Sameh's work, \ref{alg:basic} It had been proved that that, whether $\alpha r_1^Tr_1$ smaller than $\sigma^2b^Tb$ where $b$ is the initial residual and $\sigma$ is the approximation of the eigenvalue $\lambda_i$ divided by the largest eigenvalue $\lambda_{s+1} $ can be consider as a good stop criteria. We have showed during the presentation that such stop criteria would make the tracemin outer-loop number of iterations in increases. However in genearl, the total number of times that we performance linear system matrix A time a vector p in CG should decreasing.
+matrix Atime Vector b \\
   
 \begin{algorithm}[h]
 	\SetArgSty{}
